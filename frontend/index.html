@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>AI Exam Maker - Create Exams Fast</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+    <link rel="icon" type="image/png" href="favicon.png">
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary-container": "#e11d48",
+                    "background": "#050505",
+                    "surface": "#121212",
+                    "on-surface": "#ffffff",
+                    "on-surface-variant": "#a1a1aa",
+                    "primary": "#fb7185",
+            }
+          }
+        }
+      }
+    </script>
+    <style>
+        body {
+            background-color: #050505;
+            overflow-x: hidden;
+            color: #ffffff;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            margin: 0;
+            position: relative;
+        }
+        
+        /* Premium Noise Texture Overlay */
+        body::before {
+            content: "";
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-image: url('https://www.transparenttextures.com/patterns/stardust.png');
+            opacity: 0.1;
+            pointer-events: none;
+            z-index: 1000;
+        }
+
+        .mesh-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            z-index: -5;
+            background: #050505;
+        }
+        
+        .gradient-sphere {
+            position: fixed;
+            border-radius: 50%;
+            filter: blur(150px);
+            z-index: -4;
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .blob {
+            position: fixed;
+            width: 800px;
+            height: 800px;
+            background: radial-gradient(circle, rgba(225, 29, 72, 0.1) 0%, transparent 70%);
+            filter: blur(120px);
+            border-radius: 50%;
+            z-index: -3;
+            animation: float 30s infinite alternate ease-in-out;
+            pointer-events: none;
+        }
+
+        @keyframes float {
+            0% { transform: translate(-20%, -20%) scale(1); }
+            100% { transform: translate(20%, 20%) scale(1.3); }
+        }
+
+        .flying-element {
+            position: fixed;
+            color: #ffffff;
+            pointer-events: none;
+            z-index: -1;
+            animation: drift var(--duration) infinite linear;
+            top: var(--top);
+            left: var(--left);
+            display: block !important;
+            visibility: visible !important;
+        }
+        @keyframes drift {
+            from { transform: translate(0, 0) rotate(0deg); }
+            to { transform: translate(var(--x), var(--y)) rotate(360deg); }
+        }
+
+        @keyframes floatUI {
+            0% { transform: translateY(0px) rotate(0deg); }
+            50% { transform: translateY(-10px) rotate(0.5deg); }
+            100% { transform: translateY(0px) rotate(0deg); }
+        }
+        
+        @keyframes navFloat {
+            0% { transform: translateX(-50%) translateY(0px); }
+            50% { transform: translateX(-50%) translateY(-8px); }
+            100% { transform: translateX(-50%) translateY(0px); }
+        }
+
+        @keyframes arrowRotate {
+            0% { transform: rotate(-10deg) scale(1); }
+            50% { transform: rotate(10deg) scale(1.1); }
+            100% { transform: rotate(-10deg) scale(1); }
+        }
+
+        @keyframes pulseText {
+            0% { opacity: 0.9; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.02); }
+            100% { opacity: 0.9; transform: scale(1); }
+        }
+
+        #hero-section { animation: pulseText 8s infinite ease-in-out; }
+        #input-container { animation: floatUI 10s infinite ease-in-out; }
+        .type-pill-container { animation: floatUI 12s infinite ease-in-out reverse; }
+        #main-nav { animation: navFloat 8s infinite ease-in-out; }
+
+        .premium-glass {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(30px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.5);
+        }
+
+        .type-pill {
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.7);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .type-pill.active {
+            background: rgba(225, 29, 72, 0.3);
+            border-color: rgba(225, 29, 72, 0.6);
+            color: #ffffff;
+            box-shadow: 0 0 30px rgba(225, 29, 72, 0.3);
+        }
+
+        .page-content {
+            display: none;
+            opacity: 0;
+            width: 100%;
+            flex-grow: 1;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            z-index: 10;
+        }
+        .page-content.active { display: flex; opacity: 1; }
+
+        /* Premium Light Theme */
+        body.theme-light {
+            background: #f1f5f9;
+        }
+        .theme-light #preview-section .premium-glass {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.04);
+            color: #0f172a;
+        }
+        .theme-light #preview-section h4, 
+        .theme-light #preview-section p,
+        .theme-light #preview-section li,
+        .theme-light #preview-section span:not(.bg-primary-container) {
+            color: #1e293b !important;
+        }
+        .theme-light #preview-section .text-white\/40,
+        .theme-light #preview-section .text-white\/20,
+        .theme-light #preview-section .text-white\/60 {
+            color: #64748b !important;
+        }
+        .theme-light #preview-section .bg-white\/5 {
+            background: #f8fafc;
+            border-color: #e2e8f0;
+        }
+        .theme-light #preview-section input,
+        .theme-light #preview-section textarea {
+            background: #f8fafc !important;
+            color: #0f172a !important;
+            border: 1px solid #cbd5e1 !important;
+        }
+        .theme-light #preview-section .bg-primary\/5 {
+            background: rgba(59, 130, 246, 0.05);
+        }
+
+        .theme-light #main-nav {
+            background: rgba(255, 255, 255, 0.9);
+            border-color: #e2e8f0;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .theme-light .nav-btn {
+            color: #64748b !important;
+        }
+        .theme-light .nav-btn.active {
+            background: #3b82f6 !important;
+            color: white !important;
+        }
+        .theme-light .ai-bubble {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+        }
+        .theme-light #ai-message {
+            color: #1e293b !important;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .premium-glass { padding: 1.5rem !important; }
+            #preview-section .premium-glass { padding: 1.5rem !important; }
+            h1 { font-size: 2.5rem !important; }
+            .nav-item span:last-child { display: none; }
+            .nav-item { padding: 0.75rem !important; }
+            .pl-20 { padding-left: 0 !important; margin-top: 1rem; }
+            .flex-grow h4 { font-size: 1.25rem !important; }
+            #export-actions { position: relative; top: 0; right: 0; margin-bottom: 2rem; flex-wrap: wrap; }
+            .ai-container { bottom: 100px; right: 20px; scale: 0.8; }
+            #library-stats { flex-direction: column; }
+        }
+
+        main {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            width: 100%;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .nav-btn.active {
+            background: #e11d48;
+            color: white;
+            box-shadow: 0 10px 30px rgba(225, 29, 72, 0.4);
+        }
+
+        /* AI Helper Character Styling */
+        #ai-helper {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            z-index: 100;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            animation: floatUI 6s infinite ease-in-out;
+        }
+        .ai-bubble {
+            background: rgba(225, 29, 72, 0.2);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(225, 29, 72, 0.5);
+            padding: 16px 24px;
+            border-radius: 30px 30px 0 30px;
+            max-width: 280px;
+            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+            text-align: center;
+            position: relative;
+            z-index: 2;
+        }
+        .ai-arrow-svg {
+            position: absolute;
+            top: -20px;
+            right: 100%; /* Move completely outside to the left */
+            margin-right: 20px;
+            width: 250px;
+            height: 150px;
+            animation: arrowRotate 5s infinite ease-in-out;
+            pointer-events: none;
+            filter: drop-shadow(0 0 20px rgba(225, 29, 72, 0.7));
+            z-index: 10;
+        }
+        .ai-robot-img {
+            width: 380px;
+            height: 380px;
+            object-fit: contain;
+            mix-blend-mode: screen;
+            filter: brightness(1.1) contrast(1.1) drop-shadow(0 0 30px rgba(225, 29, 72, 0.4));
+            image-rendering: auto;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .ai-robot-img:hover { transform: scale(1.05); }
+        @keyframes wiggle {
+            0%, 100% { transform: rotate(0deg); }
+            25% { transform: rotate(-5deg); }
+            75% { transform: rotate(5deg); }
+        }
+        .animate-wiggle { animation: wiggle 0.5s ease-in-out; }
+
+        /* --- New Enhancement Styles --- */
+        
+        /* Toggle Switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 44px;
+            height: 24px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255,255,255,0.1);
+            transition: .4s;
+            border-radius: 34px;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px; width: 16px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+            box-shadow: 0 0 10px rgba(225, 29, 72, 0.5);
+        }
+        input:checked + .slider { background-color: rgba(225, 29, 72, 0.4); border-color: rgba(225, 29, 72, 0.6); }
+        input:checked + .slider:before { transform: translateX(20px); background-color: #fb7185; }
+
+        /* Skeleton UI Shimmer */
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.03) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 12px;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Answer Highlighting */
+        .correct-highlight {
+            background: rgba(16, 185, 129, 0.1) !important;
+            border-color: rgba(16, 185, 129, 0.4) !important;
+            box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+            transform: scale(1.02);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        .correct-label {
+            color: #10b981;
+            font-size: 10px;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            display: flex;
+            items-center: center;
+            gap: 4px;
+        }
+    </style>
+</head>
+<body class="font-sans min-h-screen flex flex-col selection:bg-primary-container selection:text-white">
+    <div class="mesh-bg"></div>
+    <div class="gradient-sphere" style="top: 10%; left: 10%; width: 500px; height: 500px; background: #e11d48;"></div>
+    <div class="gradient-sphere" style="bottom: 10%; right: 10%; width: 600px; height: 600px; background: #9f1239;"></div>
+    <div class="blob" style="top: -200px; left: -200px; animation-duration: 40s;"></div>
+    <div class="blob" style="bottom: -200px; right: -200px; animation-duration: 50s; background: radial-gradient(circle, rgba(159, 18, 57, 0.1) 0%, transparent 70%);"></div>
+
+    <span class="flying-element material-symbols-outlined" style="--top: 15%; --left: 10%; --duration: 35s; --x: 150px; --y: 80px; font-size: 80px; opacity: 0.08;">school</span>
+    <span class="flying-element material-symbols-outlined" style="--top: 45%; --left: 80%; --duration: 45s; --x: -250px; --y: 180px; font-size: 60px; opacity: 0.1;">book</span>
+    <span class="flying-element material-symbols-outlined" style="--top: 80%; --left: 20%; --duration: 38s; --x: 180px; --y: -150px; font-size: 120px; opacity: 0.05;">psychology</span>
+    <span class="flying-element material-symbols-outlined" style="--top: 65%; --left: 55%; --duration: 50s; --x: -120px; --y: -250px; font-size: 90px; opacity: 0.08;">menu_book</span>
+    <span class="flying-element material-symbols-outlined" style="--top: 25%; --left: 75%; --duration: 32s; --x: 150px; --y: 200px; font-size: 50px; opacity: 0.12;">edit_note</span>
+    <span class="flying-element material-symbols-outlined" style="--top: 90%; --left: 85%; --duration: 55s; --x: -350px; --y: -150px; font-size: 150px; opacity: 0.04;">auto_stories</span>
+    <span class="flying-element material-symbols-outlined" style="--top: 8%; --left: 45%; --duration: 40s; --x: 250px; --y: 150px; font-size: 70px; opacity: 0.09;">draw</span>
+    <span class="flying-element material-symbols-outlined" style="--top: 95%; --left: 15%; --duration: 60s; --x: 200px; --y: -100px; font-size: 200px; opacity: 0.03;">science</span>
+
+    <main class="flex-grow w-full max-w-7xl mx-auto px-gutter relative">
+        <div id="page-generate" class="page-content active">
+            <div id="hero-section" class="w-full text-center mb-16 space-y-4">
+                <h1 class="text-5xl md:text-7xl font-black tracking-tight text-white">
+                    Create <span class="bg-clip-text text-transparent bg-gradient-to-r from-primary-container to-rose-400">Perfect Exams</span> in Seconds.
+                </h1>
+                <p class="text-on-surface-variant max-w-xl mx-auto text-lg font-medium">
+                    Upload your notes and let AI build professional tests for you instantly.
+                </p>
+            </div>
+            
+            <div id="input-container" class="w-full max-w-4xl space-y-8 relative z-10">
+                <div class="premium-glass rounded-[2.5rem] p-10 transition-all duration-700 input-glow group space-y-6">
+                    <div class="flex items-center gap-6">
+                        <span class="material-symbols-outlined text-primary-container text-4xl opacity-60 group-focus-within:opacity-100 transition-all">auto_awesome</span>
+                        <input id="prompt-input" class="bg-transparent border-none focus:ring-0 w-full font-bold text-3xl text-white placeholder:text-white/20 outline-none" placeholder="What is the exam about?" type="text"/>
+                        <input type="file" id="file-upload" class="hidden" multiple accept=".pdf,.png,.jpg,.jpeg"/>
+                        <button id="upload-trigger" type="button" class="flex items-center justify-center p-5 rounded-2xl bg-white/5 hover:bg-white/10 transition-all border border-white/5 relative">
+                            <span class="material-symbols-outlined text-white/40">attach_file</span>
+                            <span id="file-count" class="absolute -top-2 -right-2 bg-primary-container text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden shadow-lg shadow-primary-container/40">0</span>
+                        </button>
+                    </div>
+                    
+                    <!-- Integrated File List inside Input Card -->
+                    <div id="file-list" class="flex flex-wrap gap-3 border-t border-white/5 pt-4 hidden">
+                        <!-- Attached files appear here -->
+                    </div>
+                </div>
+                
+                <div class="flex flex-wrap items-center justify-center gap-4 type-pill-container">
+                    <div class="flex items-center premium-glass rounded-full p-1.5 border border-white/5">
+                        <button class="type-pill active px-8 py-3 rounded-full flex items-center gap-2 transition-all font-bold text-xs uppercase" data-type="mcq">
+                            <span class="material-symbols-outlined text-lg">checklist</span> MCQs
+                        </button>
+                        <input type="number" id="mcq-count" value="10" min="0" class="w-16 bg-transparent border-none text-center font-bold text-white focus:ring-0 outline-none text-xl"/>
+                    </div>
+                    <div class="flex items-center premium-glass rounded-full p-1.5 border border-white/5">
+                        <button class="type-pill px-8 py-3 rounded-full flex items-center gap-2 transition-all font-bold text-xs uppercase" data-type="short">
+                            <span class="material-symbols-outlined text-lg">short_text</span> Short
+                        </button>
+                        <input type="number" id="short-count" value="5" min="0" class="w-16 bg-transparent border-none text-center font-bold text-white focus:ring-0 outline-none text-xl"/>
+                    </div>
+                    <div class="flex items-center premium-glass rounded-full p-1.5 border border-white/5">
+                        <button class="type-pill px-8 py-3 rounded-full flex items-center gap-2 transition-all font-bold text-xs uppercase" data-type="long">
+                            <span class="material-symbols-outlined text-lg">notes</span> Long
+                        </button>
+                        <input type="number" id="long-count" value="2" min="0" class="w-16 bg-transparent border-none text-center font-bold text-white focus:ring-0 outline-none text-xl"/>
+                    </div>
+                    <div class="premium-glass px-6 py-3 rounded-full flex items-center gap-2 border border-white/5">
+                        <select id="difficulty" class="bg-transparent border-none focus:ring-0 text-sm font-black text-primary uppercase cursor-pointer">
+                            <option value="Easy" class="bg-surface">Easy</option>
+                            <option value="Medium" class="bg-surface" selected>Medium</option>
+                            <option value="Hard" class="bg-surface">Hard</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <!-- University Branding Panel -->
+                <div class="w-full max-w-lg mx-auto">
+                    <button id="toggle-branding" class="w-full flex items-center justify-between px-8 py-4 bg-white/5 border border-white/5 rounded-2xl text-xs font-black uppercase tracking-widest text-white/40 hover:text-white transition-all">
+                        <span>University Branding (Optional)</span>
+                        <span class="material-symbols-outlined text-sm">expand_more</span>
+                    </button>
+                    <div id="branding-panel" class="mt-4 premium-glass p-8 rounded-[2rem] space-y-6 hidden animate-fadeIn">
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-primary">University Name</label>
+                            <input id="uni-name" type="text" placeholder="e.g. Harvard University" class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                        </div>
+                        <div class="space-y-2">
+                            <label class="text-[10px] font-black uppercase tracking-widest text-primary">Department / Subject</label>
+                            <input id="dept-name" type="text" placeholder="e.g. Computer Science" class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-center pt-8 flex-col items-center gap-6">
+                    <div id="loading-container" class="w-full max-w-md hidden">
+                        <div class="flex justify-between mb-2 px-1">
+                            <span id="progress-status" class="text-xs font-black uppercase tracking-widest text-primary">Reading File...</span>
+                            <span id="progress-percent" class="text-xs font-black text-white/40">0%</span>
+                        </div>
+                        <div class="w-full h-2 bg-white/5 rounded-full overflow-hidden border border-white/5">
+                            <div id="loading-bar" class="h-full bg-primary-container shadow-[0_0_15px_rgba(225,29,72,0.5)] transition-all duration-500 w-0"></div>
+                        </div>
+                    </div>
+                    <button id="construct-btn" type="button" class="bg-primary-container text-white font-black text-2xl px-20 py-6 rounded-3xl shadow-[0_20px_50px_rgba(225,29,72,0.3)] active:scale-95 transition-all hover:brightness-110 hover:-translate-y-1 disabled:opacity-50">
+                        Generate Exam
+                    </button>
+                </div>
+            </div>
+
+            <div id="preview-section" class="w-full max-w-5xl mt-24 hidden opacity-0 transition-all duration-1000">
+                <div class="premium-glass rounded-[3rem] relative overflow-hidden">
+                    <!-- Preview Header -->
+                    <div class="px-12 py-8 border-b border-white/5 flex flex-col md:flex-row justify-between items-center gap-6 bg-white/[0.02]">
+                        <div class="flex items-center gap-4">
+                            <div class="w-10 h-10 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+                                <span class="material-symbols-outlined">visibility</span>
+                            </div>
+                            <div>
+                                <h3 class="text-sm font-black text-white uppercase tracking-widest">Exam Preview</h3>
+                                <p class="text-[10px] font-bold text-white/30 uppercase tracking-widest">Review and Export</p>
+                            </div>
+                        </div>
+
+                        <div id="export-actions" class="flex items-center gap-6 z-[60]">
+                            <!-- Show Answers Toggle -->
+                            <div class="flex items-center gap-3 px-5 py-2.5 bg-white/5 rounded-2xl border border-white/10">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-white/40">Show Answers</span>
+                                <label class="switch">
+                                    <input type="checkbox" id="show-answers-toggle">
+                                    <span class="slider"></span>
+                                </label>
+                            </div>
+
+                            <div class="w-[1px] h-8 bg-white/10 mx-1"></div>
+
+                            <div class="flex items-center gap-4">
+                                <!-- Question Paper Menu -->
+                                <div class="relative dropdown-container">
+                                    <button id="btn-paper-menu" class="bg-white/5 hover:bg-white/10 px-6 py-3 rounded-2xl border border-white/10 flex items-center gap-2 text-sm font-bold transition-all dropdown-trigger">
+                                        <span class="material-symbols-outlined text-xl text-primary">description</span> Question Paper
+                                        <span class="material-symbols-outlined text-xs opacity-40">expand_more</span>
+                                    </button>
+                                    <div id="menu-paper" class="absolute top-full right-0 mt-2 w-48 premium-glass rounded-2xl border border-white/10 p-2 hidden animate-fadeIn z-[70] dropdown-menu">
+                                        <button onclick="generateQuestionPaper('pdf')" class="w-full text-left px-4 py-3 hover:bg-white/5 rounded-xl flex items-center gap-3 text-xs font-bold transition-all">
+                                            <span class="material-symbols-outlined text-sm text-red-400">picture_as_pdf</span> Export as PDF
+                                        </button>
+                                        <button onclick="generateQuestionPaper('docx')" class="w-full text-left px-4 py-3 hover:bg-white/5 rounded-xl flex items-center gap-3 text-xs font-bold transition-all">
+                                            <span class="material-symbols-outlined text-sm text-blue-400">description</span> Export as DOCX
+                                        </button>
+                                    </div>
+                                </div>
+
+                                <!-- Answer Key Menu -->
+                                <div class="relative dropdown-container">
+                                    <button id="btn-key-menu" class="bg-primary/10 hover:bg-primary/20 text-primary px-6 py-3 rounded-2xl border border-primary/20 flex items-center gap-2 text-sm font-bold transition-all dropdown-trigger">
+                                        <span class="material-symbols-outlined text-xl">vpn_key</span> Answer Key
+                                        <span class="material-symbols-outlined text-xs opacity-40">expand_more</span>
+                                    </button>
+                                    <div id="menu-key" class="absolute top-full right-0 mt-2 w-48 premium-glass rounded-2xl border border-white/10 p-2 hidden animate-fadeIn z-[70] dropdown-menu">
+                                        <button onclick="generateAnswerKey('pdf')" class="w-full text-left px-4 py-3 hover:bg-white/5 rounded-xl flex items-center gap-3 text-xs font-bold transition-all">
+                                            <span class="material-symbols-outlined text-sm text-red-400">picture_as_pdf</span> Export as PDF
+                                        </button>
+                                        <button onclick="generateAnswerKey('docx')" class="w-full text-left px-4 py-3 hover:bg-white/5 rounded-xl flex items-center gap-3 text-xs font-bold transition-all">
+                                            <span class="material-symbols-outlined text-sm text-blue-400">description</span> Export as DOCX
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="preview-content" class="p-16 space-y-16"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: LIBRARY -->
+        <div id="page-vault" class="page-content">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 mb-12">
+                <div>
+                    <h1 class="text-6xl font-black tracking-tighter">My <span class="text-primary">Library</span></h1>
+                    <p class="text-white/30 font-bold uppercase tracking-widest text-xs mt-2">Manage your generated assessments</p>
+                </div>
+                
+                <!-- Simple Analytics Dashboard -->
+                <div id="library-stats" class="flex flex-wrap gap-4">
+                    <div class="premium-glass px-6 py-4 rounded-2xl flex flex-col items-center border-l-4 border-primary">
+                        <span id="stat-total" class="text-2xl font-black">0</span>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-white/40">Total Exams</span>
+                    </div>
+                    <div class="premium-glass px-6 py-4 rounded-2xl flex flex-col items-center border-l-4 border-blue-500">
+                        <span id="stat-questions" class="text-2xl font-black">0</span>
+                        <span class="text-[9px] font-black uppercase tracking-widest text-white/40">Questions</span>
+                    </div>
+                    
+                    <!-- Bloom's Analysis Chart (Mini) -->
+                    <div class="premium-glass px-8 py-4 rounded-2xl flex flex-col justify-center border-l-4 border-emerald-500 min-w-[200px]">
+                        <span class="text-[9px] font-black uppercase tracking-widest text-white/40 mb-3">Cognitive Depth (Bloom's)</span>
+                        <div id="bloom-chart" class="space-y-2">
+                            <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden"><div class="h-full bg-emerald-500" style="width: 0%"></div></div>
+                            <div class="w-full bg-white/5 h-1 rounded-full overflow-hidden"><div class="h-full bg-blue-500" style="width: 0%"></div></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="vault-list" class="w-full max-w-4xl space-y-6"></div>
+        </div>
+
+        <!-- PAGE: ABOUT -->
+        <div id="page-about" class="page-content">
+            <div class="premium-glass p-16 rounded-[3rem] max-w-3xl">
+                <div class="text-center mb-10">
+                    <h2 class="text-5xl font-black mb-4 tracking-tighter">About the <span class="text-primary">Project</span></h2>
+                    <p class="text-white/40 font-bold uppercase tracking-widest text-sm">Final Year Project (FYP)</p>
+                </div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-12">
+                    <div class="bg-white/5 p-8 rounded-3xl border border-white/5">
+                        <p class="text-primary text-xs font-black uppercase tracking-widest mb-2">Developer</p>
+                        <h3 class="text-2xl font-bold">Mujeeb ur rehman</h3>
+                    </div>
+                    <div class="bg-white/5 p-8 rounded-3xl border border-white/5">
+                        <p class="text-primary text-xs font-black uppercase tracking-widest mb-2">Developer</p>
+                        <h3 class="text-2xl font-bold">Madad abbas</h3>
+                    </div>
+                </div>
+                <div class="space-y-6">
+                    <div class="flex gap-4">
+                        <span class="material-symbols-outlined text-primary">auto_awesome</span>
+                        <div>
+                            <h4 class="font-bold text-lg">How it works</h4>
+                            <p class="text-white/60 leading-relaxed">This app uses AI to read your study materials and automatically creates high-quality exam questions.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- AI Character Helper -->
+    <div id="ai-helper">
+        <svg class="ai-arrow-svg" viewBox="0 0 250 150" xmlns="http://www.w3.org/2000/svg">
+            <!-- Dramatic S-curve turn from bubble towards input bar -->
+            <path d="M240 120 C 180 180, 100 0, 20 60" stroke="#fb7185" stroke-width="4" fill="none" stroke-linecap="round" stroke-dasharray="8 8" />
+            <path d="M20 60 L 40 50 M 20 60 L 32 75" stroke="#fb7185" stroke-width="4" fill="none" stroke-linecap="round" />
+        </svg>
+        <div class="ai-bubble">
+            <p id="ai-message" class="text-[13px] font-black text-white leading-relaxed">I am the AI, create your papers with my help!</p>
+        </div>
+        <img id="robot-avatar" src="ai_avatar.png" class="ai-robot-img" alt="AI Assistant">
+    </div>
+
+    <div id="copy-toast" class="copy-toast">Question Copied to Clipboard!</div>
+
+    <nav id="main-nav" class="fixed bottom-10 left-1/2 -translate-x-1/2 z-50 flex items-center space-x-1 bg-surface/95 backdrop-blur-3xl rounded-full border border-white/10 p-2 shadow-[0_25px_50px_rgba(0,0,0,0.8)] max-w-[95vw] overflow-x-auto">
+
+        <button id="nav-generate" class="nav-btn active flex items-center gap-3 px-6 md:px-10 py-3 md:py-4 rounded-full transition-all duration-300">
+            <span class="material-symbols-outlined">auto_awesome</span>
+            <span id="status-text" class="font-bold text-[10px] md:text-sm uppercase tracking-[0.1em] md:tracking-[0.2em]">Generate</span>
+        </button>
+        <button id="nav-vault" class="nav-btn flex items-center gap-3 px-6 md:px-10 py-3 md:py-4 rounded-full text-white/40 hover:text-white transition-all duration-300">
+            <span class="material-symbols-outlined">folder_copy</span>
+            <span class="font-bold text-[10px] md:text-sm uppercase tracking-[0.1em] md:tracking-[0.2em]">Library</span>
+        </button>
+        <button id="nav-about" class="nav-btn flex items-center gap-3 px-6 md:px-10 py-3 md:py-4 rounded-full text-white/40 hover:text-white transition-all duration-300">
+            <span class="material-symbols-outlined">info</span>
+            <span class="font-bold text-[10px] md:text-sm uppercase tracking-[0.1em] md:tracking-[0.2em]">About</span>
+        </button>
+    </nav>
+    <script src="src/main.js"></script>
+</body>
+</html>
