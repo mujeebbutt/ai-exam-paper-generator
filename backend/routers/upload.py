@@ -42,3 +42,27 @@ async def upload_files(files: List[UploadFile] = File(...)):
         "files_uploaded": len(saved_files),
         "status": "success"
     }
+
+LOGO_DIR = os.path.join(UPLOAD_DIR, "logos")
+os.makedirs(LOGO_DIR, exist_ok=True)
+
+@router.post("/upload-logo")
+async def upload_logo(file: UploadFile = File(...)):
+    """
+    Upload a logo file for branding.
+    """
+    if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg')):
+        raise HTTPException(status_code=400, detail="Invalid logo format. Support PNG and JPG only.")
+    
+    # Generate unique name for logo
+    ext = os.path.splitext(file.filename)[1]
+    logo_name = f"logo_{uuid.uuid4()}{ext}"
+    logo_path = os.path.join(LOGO_DIR, logo_name)
+    
+    with open(logo_path, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+    
+    return {
+        "logo_path": logo_path,
+        "status": "success"
+    }

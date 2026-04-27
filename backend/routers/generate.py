@@ -99,17 +99,36 @@ async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db))
     longs = await process_generation("Long", request.long_count, PromptTemplates.LONG_PROMPT_TEMPLATE)
     all_generated_questions.extend(longs)
 
+    await asyncio.sleep(0.5)
+    progs = await process_generation("Programming", request.prog_count, PromptTemplates.PROG_PROMPT_TEMPLATE)
+    all_generated_questions.extend(progs)
+
     if not all_generated_questions:
         raise HTTPException(status_code=500, detail="Failed to generate any questions. Gemini couldn't find enough content.")
 
     # SAVE TO LIBRARY
     try:
+        total_marks = (
+            (len(mcqs) * request.mcq_marks) +
+            (len(shorts) * request.short_marks) +
+            (len(longs) * request.long_marks) +
+            (len(progs) * request.prog_marks)
+        )
+        
         new_exam = models.Exam(
             session_id=request.session_id,
-            title=f"Exam: {request.topic or 'General Assessment'}",
+            title=request.exam_title,
             subject=request.topic or "General",
             date=datetime.now().strftime("%Y-%m-%d %H:%M"),
-            total_marks=len(all_generated_questions) * 5,
+            total_marks=total_marks,
+            time_limit=request.time_limit,
+            passing_percentage=request.passing_percentage,
+            mcq_marks=request.mcq_marks,
+            short_marks=request.short_marks,
+            long_marks=request.long_marks,
+            prog_marks=request.prog_marks,
+            branding=request.branding.dict() if request.branding else None,
+            student_info=request.student_info.dict() if request.student_info else None,
             questions_data=all_generated_questions 
         )
         db.add(new_exam)

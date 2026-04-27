@@ -157,6 +157,8 @@
             transition: all 1.2s cubic-bezier(0.4, 0, 0.2, 1);
             position: relative;
             z-index: 10;
+            padding-bottom: 120px;
+            padding-top: 80px;
         }
         .page-content.active { display: flex; opacity: 1; }
 
@@ -196,8 +198,46 @@
         }
 
         .theme-light #main-nav {
-            background: rgba(255, 255, 255, 0.9);
             border-color: #e2e8f0;
+        }
+
+        /* Toggle Switch Styling */
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 40px;
+            height: 20px;
+        }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: rgba(255,255,255,0.1);
+            transition: .4s;
+            border-radius: 20px;
+        }
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 14px; width: 14px;
+            left: 3px; bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+        input:checked + .slider { background-color: #e11d48; }
+        input:checked + .slider:before { transform: translateX(20px); }
+        input:disabled + .slider { opacity: 0.5; cursor: not-allowed; }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fadeIn { animation: fadeIn 0.4s ease-out forwards; }
+        .theme-light #main-nav {
+            background: rgba(255, 255, 255, 0.9);
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
         }
         .theme-light .nav-btn {
@@ -299,37 +339,7 @@
         }
         .animate-wiggle { animation: wiggle 0.5s ease-in-out; }
 
-        /* --- New Enhancement Styles --- */
-        
-        /* Toggle Switch */
-        .switch {
-            position: relative;
-            display: inline-block;
-            width: 44px;
-            height: 24px;
-        }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider {
-            position: absolute;
-            cursor: pointer;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background-color: rgba(255,255,255,0.1);
-            transition: .4s;
-            border-radius: 34px;
-            border: 1px solid rgba(255,255,255,0.1);
-        }
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 16px; width: 16px;
-            left: 3px; bottom: 3px;
-            background-color: white;
-            transition: .4s;
-            border-radius: 50%;
-            box-shadow: 0 0 10px rgba(225, 29, 72, 0.5);
-        }
-        input:checked + .slider { background-color: rgba(225, 29, 72, 0.4); border-color: rgba(225, 29, 72, 0.6); }
-        input:checked + .slider:before { transform: translateX(20px); background-color: #fb7185; }
+
 
         /* Skeleton UI Shimmer */
         .skeleton {
@@ -358,7 +368,7 @@
             text-transform: uppercase;
             letter-spacing: 0.1em;
             display: flex;
-            items-center: center;
+            align-items: center;
             gap: 4px;
         }
     </style>
@@ -379,7 +389,7 @@
     <span class="flying-element material-symbols-outlined" style="--top: 8%; --left: 45%; --duration: 40s; --x: 250px; --y: 150px; font-size: 70px; opacity: 0.09;">draw</span>
     <span class="flying-element material-symbols-outlined" style="--top: 95%; --left: 15%; --duration: 60s; --x: 200px; --y: -100px; font-size: 200px; opacity: 0.03;">science</span>
 
-    <main class="flex-grow w-full max-w-7xl mx-auto px-gutter relative">
+    <main class="flex-grow w-full max-w-7xl mx-auto px-4 md:px-8 relative">
         <div id="page-generate" class="page-content active">
             <div id="hero-section" class="w-full text-center mb-16 space-y-4">
                 <h1 class="text-5xl md:text-7xl font-black tracking-tight text-white">
@@ -390,71 +400,222 @@
                 </p>
             </div>
             
-            <div id="input-container" class="w-full max-w-4xl space-y-8 relative z-10">
-                <div class="premium-glass rounded-[2.5rem] p-10 transition-all duration-700 input-glow group space-y-6">
+            <div id="input-container" class="w-full max-w-7xl relative z-10">
+                <!-- Topic Input Bar (full width) -->
+                <div class="premium-glass rounded-[2.5rem] p-8 transition-all duration-700 input-glow group space-y-6 mb-12">
                     <div class="flex items-center gap-6">
                         <span class="material-symbols-outlined text-primary-container text-4xl opacity-60 group-focus-within:opacity-100 transition-all">auto_awesome</span>
                         <input id="prompt-input" class="bg-transparent border-none focus:ring-0 w-full font-bold text-3xl text-white placeholder:text-white/20 outline-none" placeholder="What is the exam about?" type="text"/>
                         <input type="file" id="file-upload" class="hidden" multiple accept=".pdf,.png,.jpg,.jpeg"/>
-                        <button id="upload-trigger" type="button" class="flex items-center justify-center p-5 rounded-2xl bg-white/5 hover:bg-white/10 transition-all border border-white/5 relative">
+                        <button id="upload-trigger" type="button" class="flex items-center justify-center p-5 rounded-2xl bg-white/5 hover:bg-white/10 transition-all border border-white/5 relative cursor-pointer">
                             <span class="material-symbols-outlined text-white/40">attach_file</span>
                             <span id="file-count" class="absolute -top-2 -right-2 bg-primary-container text-white text-[10px] font-bold px-2 py-0.5 rounded-full hidden shadow-lg shadow-primary-container/40">0</span>
                         </button>
                     </div>
-                    
-                    <!-- Integrated File List inside Input Card -->
-                    <div id="file-list" class="flex flex-wrap gap-3 border-t border-white/5 pt-4 hidden">
-                        <!-- Attached files appear here -->
-                    </div>
+                    <div id="file-list" class="flex flex-wrap gap-2 pt-4"></div>
                 </div>
-                
-                <div class="flex flex-wrap items-center justify-center gap-4 type-pill-container">
-                    <div class="flex items-center premium-glass rounded-full p-1.5 border border-white/5">
-                        <button class="type-pill active px-8 py-3 rounded-full flex items-center gap-2 transition-all font-bold text-xs uppercase" data-type="mcq">
-                            <span class="material-symbols-outlined text-lg">checklist</span> MCQs
-                        </button>
-                        <input type="number" id="mcq-count" value="10" min="0" class="w-16 bg-transparent border-none text-center font-bold text-white focus:ring-0 outline-none text-xl"/>
-                    </div>
-                    <div class="flex items-center premium-glass rounded-full p-1.5 border border-white/5">
-                        <button class="type-pill px-8 py-3 rounded-full flex items-center gap-2 transition-all font-bold text-xs uppercase" data-type="short">
-                            <span class="material-symbols-outlined text-lg">short_text</span> Short
-                        </button>
-                        <input type="number" id="short-count" value="5" min="0" class="w-16 bg-transparent border-none text-center font-bold text-white focus:ring-0 outline-none text-xl"/>
-                    </div>
-                    <div class="flex items-center premium-glass rounded-full p-1.5 border border-white/5">
-                        <button class="type-pill px-8 py-3 rounded-full flex items-center gap-2 transition-all font-bold text-xs uppercase" data-type="long">
-                            <span class="material-symbols-outlined text-lg">notes</span> Long
-                        </button>
-                        <input type="number" id="long-count" value="2" min="0" class="w-16 bg-transparent border-none text-center font-bold text-white focus:ring-0 outline-none text-xl"/>
-                    </div>
-                    <div class="premium-glass px-6 py-3 rounded-full flex items-center gap-2 border border-white/5">
-                        <select id="difficulty" class="bg-transparent border-none focus:ring-0 text-sm font-black text-primary uppercase cursor-pointer">
-                            <option value="Easy" class="bg-surface">Easy</option>
-                            <option value="Medium" class="bg-surface" selected>Medium</option>
-                            <option value="Hard" class="bg-surface">Hard</option>
-                        </select>
-                    </div>
-                </div>
-                
-                <!-- University Branding Panel -->
-                <div class="w-full max-w-lg mx-auto">
-                    <button id="toggle-branding" class="w-full flex items-center justify-between px-8 py-4 bg-white/5 border border-white/5 rounded-2xl text-xs font-black uppercase tracking-widest text-white/40 hover:text-white transition-all">
-                        <span>University Branding (Optional)</span>
-                        <span class="material-symbols-outlined text-sm">expand_more</span>
-                    </button>
-                    <div id="branding-panel" class="mt-4 premium-glass p-8 rounded-[2rem] space-y-6 hidden animate-fadeIn">
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-primary">University Name</label>
-                            <input id="uni-name" type="text" placeholder="e.g. Harvard University" class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+
+                <!-- Two Column Layout -->
+                <div class="flex flex-col lg:flex-row gap-10">
+                    <!-- LEFT: Question Config + Marks -->
+                    <div class="flex-1 space-y-6">
+                        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 type-pill-container" id="question-type-grid">
+                            <!-- MCQ -->
+                            <div class="premium-glass rounded-2xl p-5 border border-white/5 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] hover:border-white/20 cursor-pointer group/card active-card" data-type="mcq" id="card-mcq">
+                                <div class="flex justify-between items-start mb-3">
+                                    <label class="switch scale-[0.6]"><input type="checkbox" checked onchange="toggleType('mcq', this.checked)"><span class="slider"></span></label>
+                                    <div class="text-right cursor-pointer" onclick="toggleCard(document.getElementById('card-mcq'))">
+                                        <div id="mcq-qty-display" class="text-3xl font-black text-white leading-none">10</div>
+                                        <div class="text-[9px] font-bold text-white/40 uppercase tracking-widest">MCQs</div>
+                                    </div>
+                                </div>
+                                <div class="space-y-2 hidden group-[.active-card]/card:block animate-fadeIn">
+                                    <div class="flex gap-2">
+                                        <div class="flex-1"><label class="text-[8px] font-black text-primary uppercase">Qty</label><input type="number" id="mcq-count" value="10" min="0" class="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-lg font-bold text-white outline-none focus:border-primary w-full"></div>
+                                        <div class="flex-1"><label class="text-[8px] font-black text-primary uppercase">Marks</label><input type="number" id="mcq-marks" value="1" min="1" class="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-sm font-bold text-white outline-none focus:border-primary w-full"></div>
+                                    </div>
+                                </div>
+                                <div class="text-[9px] font-bold text-white/20 mt-1 group-[.active-card]/card:hidden cursor-pointer" onclick="toggleCard(document.getElementById('card-mcq'))">x 1 mark</div>
+                            </div>
+                            <!-- Short -->
+                            <div class="premium-glass rounded-2xl p-5 border border-white/5 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] hover:border-white/20 cursor-pointer group/card active-card" data-type="short" id="card-short">
+                                <div class="flex justify-between items-start mb-3">
+                                    <label class="switch scale-[0.6]"><input type="checkbox" checked onchange="toggleType('short', this.checked)"><span class="slider"></span></label>
+                                    <div class="text-right cursor-pointer" onclick="toggleCard(document.getElementById('card-short'))">
+                                        <div id="short-qty-display" class="text-3xl font-black text-white leading-none">5</div>
+                                        <div class="text-[9px] font-bold text-white/40 uppercase tracking-widest">Short</div>
+                                    </div>
+                                </div>
+                                <div class="space-y-2 hidden group-[.active-card]/card:block animate-fadeIn">
+                                    <div class="flex gap-2">
+                                        <div class="flex-1"><label class="text-[8px] font-black text-primary uppercase">Qty</label><input type="number" id="short-count" value="5" min="0" class="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-lg font-bold text-white outline-none focus:border-primary w-full"></div>
+                                        <div class="flex-1"><label class="text-[8px] font-black text-primary uppercase">Marks</label><input type="number" id="short-marks" value="4" min="1" class="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-sm font-bold text-white outline-none focus:border-primary w-full"></div>
+                                    </div>
+                                </div>
+                                <div class="text-[9px] font-bold text-white/20 mt-1 group-[.active-card]/card:hidden cursor-pointer" onclick="toggleCard(document.getElementById('card-short'))">x 4 marks</div>
+                            </div>
+                            <!-- Long -->
+                            <div class="premium-glass rounded-2xl p-5 border border-white/5 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] hover:border-white/20 cursor-pointer group/card active-card" data-type="long" id="card-long">
+                                <div class="flex justify-between items-start mb-3">
+                                    <label class="switch scale-[0.6]"><input type="checkbox" checked onchange="toggleType('long', this.checked)"><span class="slider"></span></label>
+                                    <div class="text-right cursor-pointer" onclick="toggleCard(document.getElementById('card-long'))">
+                                        <div id="long-qty-display" class="text-3xl font-black text-white leading-none">2</div>
+                                        <div class="text-[9px] font-bold text-white/40 uppercase tracking-widest">Long</div>
+                                    </div>
+                                </div>
+                                <div class="space-y-2 hidden group-[.active-card]/card:block animate-fadeIn">
+                                    <div class="flex gap-2">
+                                        <div class="flex-1"><label class="text-[8px] font-black text-primary uppercase">Qty</label><input type="number" id="long-count" value="2" min="0" class="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-lg font-bold text-white outline-none focus:border-primary w-full"></div>
+                                        <div class="flex-1"><label class="text-[8px] font-black text-primary uppercase">Marks</label><input type="number" id="long-marks" value="10" min="1" class="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-sm font-bold text-white outline-none focus:border-primary w-full"></div>
+                                    </div>
+                                </div>
+                                <div class="text-[9px] font-bold text-white/20 mt-1 group-[.active-card]/card:hidden cursor-pointer" onclick="toggleCard(document.getElementById('card-long'))">x 10 marks</div>
+                            </div>
+                            <!-- Programming -->
+                            <div class="premium-glass rounded-2xl p-5 border border-white/5 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] hover:border-white/20 cursor-pointer group/card" data-type="prog" id="card-prog">
+                                <div class="flex justify-between items-start mb-3">
+                                    <label class="switch scale-[0.6]"><input type="checkbox" onchange="toggleType('prog', this.checked)"><span class="slider"></span></label>
+                                    <div class="text-right cursor-pointer" onclick="toggleCard(document.getElementById('card-prog'))">
+                                        <div id="prog-qty-display" class="text-3xl font-black text-white leading-none">0</div>
+                                        <div class="text-[9px] font-bold text-white/40 uppercase tracking-widest">Prog</div>
+                                    </div>
+                                </div>
+                                <div class="space-y-2 hidden group-[.active-card]/card:block animate-fadeIn">
+                                    <div class="flex gap-2">
+                                        <div class="flex-1"><label class="text-[8px] font-black text-primary uppercase">Qty</label><input type="number" id="prog-count" value="0" min="0" class="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-lg font-bold text-white outline-none focus:border-primary w-full"></div>
+                                        <div class="flex-1"><label class="text-[8px] font-black text-primary uppercase">Marks</label><input type="number" id="prog-marks" value="15" min="1" class="bg-white/5 border border-white/10 rounded-lg px-2 py-2 text-sm font-bold text-white outline-none focus:border-primary w-full"></div>
+                                    </div>
+                                </div>
+                                <div class="text-[9px] font-bold text-white/20 mt-1 group-[.active-card]/card:hidden cursor-pointer" onclick="toggleCard(document.getElementById('card-prog'))">x 15 marks</div>
+                            </div>
                         </div>
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-black uppercase tracking-widest text-primary">Department / Subject</label>
-                            <input id="dept-name" type="text" placeholder="e.g. Computer Science" class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-3 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+
+                        <!-- Exam Settings Cards -->
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 pt-4">
+                            <!-- Time Limit Card -->
+                            <div class="premium-glass rounded-2xl p-4 border border-white/5 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(225,29,72,0.1)] hover:border-white/20">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-primary text-lg">timer</span>
+                                    </div>
+                                    <span class="text-[10px] font-black uppercase tracking-widest text-white/60">Time Limit</span>
+                                </div>
+                                <select id="time-limit" class="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-white outline-none cursor-pointer bg-white/5 rounded-lg px-3 py-2 border border-white/10" onchange="updateLiveMarks()">
+                                    <option value="30 Mins" class="bg-surface">30 Mins</option>
+                                    <option value="1 Hour" class="bg-surface">1 Hour</option>
+                                    <option value="1.5 Hours" class="bg-surface">1.5 Hours</option>
+                                    <option value="2 Hours" class="bg-surface" selected>2 Hours</option>
+                                    <option value="2.5 Hours" class="bg-surface">2.5 Hours</option>
+                                    <option value="3 Hours" class="bg-surface">3 Hours</option>
+                                </select>
+                            </div>
+                            <!-- Passing Percentage Card -->
+                            <div class="premium-glass rounded-2xl p-4 border border-white/5 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(225,29,72,0.1)] hover:border-white/20">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-primary text-lg">percent</span>
+                                    </div>
+                                    <span class="text-[10px] font-black uppercase tracking-widest text-white/60">Passing %</span>
+                                </div>
+                                <select id="passing-percent" class="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-primary outline-none cursor-pointer bg-white/5 rounded-lg px-3 py-2 border border-white/10" onchange="updateLiveMarks()">
+                                    <option value="33" class="bg-surface">33%</option>
+                                    <option value="40" class="bg-surface" selected>40%</option>
+                                    <option value="50" class="bg-surface">50%</option>
+                                    <option value="60" class="bg-surface">60%</option>
+                                    <option value="75" class="bg-surface">75%</option>
+                                </select>
+                            </div>
+                            <!-- Difficulty Card -->
+                            <div class="premium-glass rounded-2xl p-4 border border-white/5 transition-all duration-300 hover:scale-[1.02] hover:shadow-[0_0_20px_rgba(225,29,72,0.1)] hover:border-white/20">
+                                <div class="flex items-center gap-3 mb-3">
+                                    <div class="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
+                                        <span class="material-symbols-outlined text-primary text-lg">signal_cellular_alt</span>
+                                    </div>
+                                    <span class="text-[10px] font-black uppercase tracking-widest text-white/60">Difficulty</span>
+                                </div>
+                                <select id="difficulty" class="w-full bg-transparent border-none focus:ring-0 text-sm font-bold text-primary outline-none cursor-pointer bg-white/5 rounded-lg px-3 py-2 border border-white/10">
+                                    <option value="Easy" class="bg-surface">Easy</option>
+                                    <option value="Medium" class="bg-surface" selected>Medium</option>
+                                    <option value="Hard" class="bg-surface">Hard</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <!-- Live Marks -->
+                        <div class="flex items-center justify-center gap-8 py-5 mt-4 bg-white/[0.02] rounded-2xl border border-white/5">
+                            <div class="text-center">
+                                <div id="total-marks-display" class="text-4xl font-black text-white">0</div>
+                                <div class="text-[9px] font-black text-white/40 uppercase tracking-widest">Total Marks</div>
+                            </div>
+                            <div class="w-[1px] h-12 bg-white/10"></div>
+                            <div class="text-center">
+                                <div id="passing-marks-display" class="text-4xl font-black text-primary">0</div>
+                                <div class="text-[9px] font-black text-white/40 uppercase tracking-widest">Passing Marks</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- RIGHT: University Branding (always visible) -->
+                    <div class="w-full lg:w-80 shrink-0">
+                        <div class="premium-glass p-5 rounded-2xl space-y-4 border border-white/5 lg:sticky lg:top-8 transition-all duration-300 hover:shadow-[0_0_30px_rgba(225,29,72,0.15)] hover:border-white/20">
+                            <div class="flex items-center gap-3 mb-2">
+                                <span class="material-symbols-outlined text-primary text-lg">school</span>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-white/60">University Branding</span>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <div id="logo-preview" class="w-12 h-12 rounded-xl border-2 border-dashed border-white/10 flex items-center justify-center overflow-hidden bg-white/5 shrink-0">
+                                    <span class="material-symbols-outlined text-white/20 text-lg">add_photo_alternate</span>
+                                </div>
+                                <div class="flex-grow">
+                                    <input type="file" id="logo-upload" class="hidden" accept=".png,.jpg,.jpeg">
+                                    <button type="button" onclick="document.getElementById('logo-upload').click()" class="w-full bg-white/5 hover:bg-white/10 border border-white/10 rounded-lg px-3 py-2 text-[9px] font-black uppercase text-white transition-all">Upload Logo</button>
+                                </div>
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-black uppercase tracking-widest text-primary">Exam Title</label>
+                                <input id="exam-title" type="text" placeholder="e.g. Final Examination" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-black uppercase tracking-widest text-primary">University Name</label>
+                                <input id="uni-name" type="text" placeholder="e.g. Harvard University" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                            </div>
+                            <div class="space-y-1">
+                                <label class="text-[9px] font-black uppercase tracking-widest text-primary">Subject / Department</label>
+                                <input id="dept-name" type="text" placeholder="e.g. OOP" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                            </div>
+
+                            <!-- Student Info Toggle -->
+                            <div class="pt-4 border-t border-white/5 space-y-3">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-black uppercase tracking-widest text-white/60">Student Information</span>
+                                    <label class="relative inline-flex items-center cursor-pointer">
+                                        <input type="checkbox" id="student-info-toggle" class="sr-only peer">
+                                        <div class="w-8 h-4 bg-white/10 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary"></div>
+                                    </label>
+                                </div>
+                                <div id="student-info-options" class="hidden space-y-2 pl-2 border-l border-primary/20">
+                                    <label class="flex items-center gap-2 cursor-pointer group">
+                                        <input type="checkbox" id="show-student-name" checked class="hidden peer">
+                                        <div class="w-4 h-4 rounded border border-white/20 flex items-center justify-center peer-checked:bg-primary peer-checked:border-primary transition-all">
+                                            <span class="material-symbols-outlined text-[12px] text-white scale-0 peer-checked:scale-100">done</span>
+                                        </div>
+                                        <span class="text-[10px] font-bold text-white/40 group-hover:text-white/60 transition-all">Include Name Field</span>
+                                    </label>
+                                    <label class="flex items-center gap-2 cursor-pointer group">
+                                        <input type="checkbox" id="show-student-roll" checked class="hidden peer">
+                                        <div class="w-4 h-4 rounded border border-white/20 flex items-center justify-center peer-checked:bg-primary peer-checked:border-primary transition-all">
+                                            <span class="material-symbols-outlined text-[12px] text-white scale-0 peer-checked:scale-100">done</span>
+                                        </div>
+                                        <span class="text-[10px] font-bold text-white/40 group-hover:text-white/60 transition-all">Include Roll No Field</span>
+                                    </label>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="flex justify-center pt-8 flex-col items-center gap-6">
+                <!-- Generate Button -->
+                <div class="flex flex-col items-center gap-6 mt-12 mb-0">
                     <div id="loading-container" class="w-full max-w-md hidden">
                         <div class="flex justify-between mb-2 px-1">
                             <span id="progress-status" class="text-xs font-black uppercase tracking-widest text-primary">Reading File...</span>
@@ -602,11 +763,6 @@
 
     <!-- AI Character Helper -->
     <div id="ai-helper">
-        <svg class="ai-arrow-svg" viewBox="0 0 250 150" xmlns="http://www.w3.org/2000/svg">
-            <!-- Dramatic S-curve turn from bubble towards input bar -->
-            <path d="M240 120 C 180 180, 100 0, 20 60" stroke="#fb7185" stroke-width="4" fill="none" stroke-linecap="round" stroke-dasharray="8 8" />
-            <path d="M20 60 L 40 50 M 20 60 L 32 75" stroke="#fb7185" stroke-width="4" fill="none" stroke-linecap="round" />
-        </svg>
         <div class="ai-bubble">
             <p id="ai-message" class="text-[13px] font-black text-white leading-relaxed">I am the AI, create your papers with my help!</p>
         </div>

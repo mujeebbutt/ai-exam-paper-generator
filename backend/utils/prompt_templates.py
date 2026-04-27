@@ -73,3 +73,25 @@ class PromptTemplates:
       }}
     ]
     """
+
+    PROG_PROMPT_TEMPLATE = """
+    Context: {context}
+    
+    Task: Generate {count} Programming/Coding Questions of {difficulty} difficulty based ONLY on the context above.
+    
+    Requirements:
+    1. Each question should ask to write a function, class, or script related to the context.
+    2. Provide a model solution in code.
+    3. Provide test cases or expected output.
+    4. Respond in a JSON list of objects.
+    
+    Format Example:
+    [
+      {{
+        "type": "programming",
+        "question": "[Insert coding task here]",
+        "answer": "[Code solution]",
+        "explanation": "[Explanation of logic]"
+      }}
+    ]
+    """
