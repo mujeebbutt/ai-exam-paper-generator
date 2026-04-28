@@ -213,26 +213,21 @@ function renderPreview(state) {
                     `}
                 </div>
                 
-                <div class="flex items-start gap-4">
-                    <span class="text-white/60 font-black text-sm mt-0.5">${qIndex++}.</span>
-                    <div class="flex-grow">
-                        ${isEditing ? `
-                            <textarea id="edit-q-text" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-lg font-bold text-white outline-none focus:border-primary min-h-[80px]">${q.question}</textarea>
-                        ` : `
-                            <h4 class="text-lg text-white font-medium leading-relaxed">
-                                ${state.student_info.show_bloom_tags && q.bloom_level ? `<span class="text-primary text-[9px] uppercase tracking-widest font-black inline-block mr-2">[${q.bloom_level}]</span>` : ''}
-                                ${q.question} <span class="text-xs font-bold text-white/20 ml-2">[${marksEach}]</span>
-                            </h4>
-                        `}
-                    </div>
-                </div>
-                <div class="pl-8">
-                    ${isEditing ? `
-                        <div class="space-y-2">
-                            <label class="text-[10px] font-black uppercase text-white/40">Model Answer</label>
-                            <textarea id="edit-q-answer" class="w-full bg-white/5 border border-white/10 rounded-xl p-3 text-sm text-white/80 outline-none focus:border-primary">${q.answer}</textarea>
+                <div class="flex justify-between items-start gap-4">
+                    <div class="flex gap-4">
+                        <span class="text-xl font-black text-white/20 tabular-nums">${qIndex++}.</span>
+                        <div class="space-y-4 flex-grow">
+                            ${isEditing ? `
+                                <textarea id="edit-q-text" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white font-medium outline-none focus:border-primary min-h-[100px]">${q.question}</textarea>
+                                <textarea id="edit-q-answer" class="w-full bg-white/5 border border-white/10 rounded-xl p-4 text-white/60 text-sm italic outline-none focus:border-primary min-h-[80px]" placeholder="Correct Answer">${q.answer}</textarea>
+                            ` : `
+                                <p class="text-xl font-medium text-white/90 leading-relaxed">${q.question}</p>
+                                ${state.student_info.show_bloom_tags && q.bloom_level ? `<span class="inline-flex px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-[9px] font-black uppercase tracking-widest text-primary">${q.bloom_level}</span>` : ''}
+                                ${renderQuestionBody(q, state.showAnswers)}
+                            `}
                         </div>
-                    ` : renderQuestionBody(q, state.showAnswers)}
+                    </div>
+                    <span class="text-sm font-black text-white/40 tabular-nums">[${marksEach}]</span>
                 </div>
             </div>
         `;

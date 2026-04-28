@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
             show_class: true,
             show_date: true,
             show_section: true,
-            show_bloom_tags: true,
+            show_bloom_tags: false,
             multi_column_mcqs: false
         },
         marks: {
@@ -176,9 +176,38 @@ document.addEventListener('DOMContentLoaded', () => {
         toggleBranding.addEventListener('click', () => brandingPanel.classList.toggle('hidden'));
     }
 
-    if (uniInput) uniInput.addEventListener('input', (e) => state.branding.uni = e.target.value);
-    if (deptInput) deptInput.addEventListener('input', (e) => state.branding.dept = e.target.value);
-    if (examTitleInput) examTitleInput.addEventListener('input', (e) => state.branding.exam_title = e.target.value);
+    if (uniInput) uniInput.addEventListener('input', (e) => { state.branding.uni = e.target.value; renderPreview(state); });
+    if (deptInput) deptInput.addEventListener('input', (e) => { state.branding.dept = e.target.value; renderPreview(state); });
+    if (examTitleInput) examTitleInput.addEventListener('input', (e) => { state.branding.exam_title = e.target.value; renderPreview(state); });
+
+    // Student Info Checkboxes
+    ['name', 'roll', 'class', 'section', 'date'].forEach(field => {
+        const el = document.getElementById(`show-student-${field}`);
+        if (el) el.addEventListener('change', (e) => {
+            state.student_info[`show_${field === 'roll' ? 'roll_no' : field}`] = e.target.checked;
+            renderPreview(state);
+        });
+    });
+
+    const bloomToggle = document.getElementById('show-bloom-tags');
+    if (bloomToggle) bloomToggle.addEventListener('change', (e) => {
+        state.student_info.show_bloom_tags = e.target.checked;
+        renderPreview(state);
+    });
+
+    const multiColToggle = document.getElementById('multi-column-mcqs');
+    if (multiColToggle) multiColToggle.addEventListener('change', (e) => {
+        state.student_info.multi_column_mcqs = e.target.checked;
+        renderPreview(state);
+    });
+
+    // Question Blueprint Inputs
+    ['mcq', 'short', 'long'].forEach(type => {
+        const countInput = document.getElementById(`${type}-count`);
+        const marksInput = document.getElementById(`${type}-marks`);
+        if (countInput) countInput.addEventListener('input', window.updateLiveMarks);
+        if (marksInput) marksInput.addEventListener('input', window.updateLiveMarks);
+    });
     if (createNewBtnMain) {
         createNewBtnMain.addEventListener('click', () => {
             if (state.questions.length > 0 && !state.isFromVault) {
@@ -639,30 +668,33 @@ document.addEventListener('DOMContentLoaded', () => {
             // ... (rest as updated above)
             // Update Library Header Stats
             document.getElementById('vault-count').textContent = exams.length;
-            document.getElementById('vault-last-sync').textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            document.getElementById('vault-last-sync').textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true});
             
             vaultList.innerHTML = exams.map((exam, index) => `
-                <div class="vault-card group">
-                    <div onclick="viewExam(${index})" class="flex-grow flex items-center gap-6 cursor-pointer">
-                        <div class="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center">
-                            <span class="material-symbols-outlined text-primary text-2xl">description</span>
+                <div class="premium-glass p-8 rounded-[3rem] border border-white/5 hover:border-primary/30 transition-all group relative overflow-hidden flex flex-col h-full">
+                    <div class="flex justify-between items-start mb-8">
+                        <div class="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                            <span class="material-symbols-outlined text-3xl">description</span>
                         </div>
+                        <button onclick="deleteExam('${exam.id}', '${exam.session_id}', event)" 
+                                class="p-3 rounded-xl bg-white/5 hover:bg-rose-500/20 text-white/20 hover:text-rose-500 transition-all border border-transparent hover:border-rose-500/30">
+                            <span class="material-symbols-outlined text-sm">delete</span>
+                        </button>
+                    </div>
+                    
+                    <div class="space-y-4 flex-grow cursor-pointer" onclick="viewExam(${index})">
                         <div class="space-y-1">
-                            <h4 class="text-2xl font-black text-white group-hover:text-primary transition-colors">${exam.title || 'Assessment'}</h4>
-                            <div class="flex gap-3 items-center">
-                                <span class="text-[10px] font-black uppercase tracking-widest text-white/30">${exam.date}</span>
-                                <span class="w-1 h-1 rounded-full bg-white/10"></span>
-                                <span class="text-[10px] font-black uppercase tracking-widest text-primary/60">${exam.subject || 'General'}</span>
-                                <span class="w-1 h-1 rounded-full bg-white/10"></span>
-                                <span class="text-[10px] font-black uppercase tracking-widest text-white/20">${exam.total_marks} Marks</span>
-                            </div>
+                            <span class="text-[9px] font-black uppercase tracking-widest text-primary">${exam.subject || 'Academic Paper'}</span>
+                            <h4 class="text-3xl font-black text-white group-hover:text-primary transition-colors line-clamp-2 leading-none">${exam.title || 'Untitled Assessment'}</h4>
+                        </div>
+                        
+                        <div class="flex gap-4 pt-4 border-t border-white/5 text-white/30 text-[10px] font-black uppercase tracking-widest">
+                            <span>${exam.questions_data?.length || 0} Questions</span>
                         </div>
                     </div>
-                    <div class="flex items-center gap-4">
-                        <button onclick="viewExam(${index})" class="text-[10px] font-black uppercase tracking-widest px-4 py-2 rounded-full bg-white/5 border border-white/10 text-white/40 hover:bg-primary/20 hover:text-primary hover:border-primary/30 transition-all">Review</button>
-                        <button onclick="deleteExam('${exam.id}', '${exam.session_id}', event)" class="w-10 h-10 rounded-full bg-red-500/10 border border-red-500/20 text-red-500 hover:bg-red-500 hover:text-white transition-all flex items-center justify-center" title="Delete Exam">
-                            <span class="material-symbols-outlined text-lg">delete</span>
-                        </button>
+                    
+                    <div class="mt-8 flex gap-3">
+                        <button onclick="viewExam(${index})" class="flex-grow py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white transition-all">View Paper</button>
                     </div>
                 </div>
             `).join('');
@@ -784,21 +816,21 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.toggleType = (type, isChecked) => {
-        const input = document.getElementById(`${type}-count`);
+        const countInput = document.getElementById(`${type}-count`);
+        const marksInput = document.getElementById(`${type}-marks`);
+        const card = document.getElementById(`card-${type}`);
+        
         if (!isChecked) {
-            input.setAttribute('data-last-val', input.value);
-            input.value = 0;
-            input.disabled = true;
+            countInput.setAttribute('data-last-val', countInput.value);
+            countInput.value = 0;
+            countInput.disabled = true;
+            if (card) card.classList.add('opacity-40');
         } else {
-            input.disabled = false;
-            input.value = input.getAttribute('data-last-val') || (type === 'mcq' ? 10 : type === 'short' ? 5 : type === 'long' ? 2 : 0);
+            countInput.disabled = false;
+            countInput.value = countInput.getAttribute('data-last-val') || (type === 'mcq' ? 10 : type === 'short' ? 5 : type === 'long' ? 2 : 0);
+            if (card) card.classList.remove('opacity-40');
         }
         window.updateLiveMarks();
-    };
-
-    window.toggleCard = (card) => {
-        document.querySelectorAll('.group\\/card').forEach(c => c.classList.remove('active-card'));
-        card.classList.add('active-card');
     };
 
     // Initialize UI
