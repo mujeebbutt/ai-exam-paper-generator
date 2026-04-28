@@ -6,7 +6,7 @@ from typing import List, Optional
 import os
 
 router = APIRouter()
-export_service = ExportService()
+# Removed global export_service instantiation to avoid stale objects
 
 from models.schemas import BrandingInfo, StudentInfo
 
@@ -32,12 +32,14 @@ class ExportRequest(BaseModel):
 
 @router.post("/export")
 async def export_exam(request: ExportRequest):
+    # Instantiate service inside route to ensure fresh class definition
+    export_service = ExportService()
     """
     Generates and returns the exam file.
     """
     try:
         if request.format.lower() == 'pdf':
-            file_path = await export_service.generate_pdf(
+            file_path = await export_service.generate_pdf_file(
                 request.session_id, 
                 request.questions, 
                 request.branding, 
@@ -58,7 +60,7 @@ async def export_exam(request: ExportRequest):
             )
             media_type = "application/pdf"
         elif request.format.lower() == 'docx':
-            file_path = export_service.generate_docx(
+            file_path = export_service.generate_docx_file(
                 request.session_id, 
                 request.questions, 
                 request.branding, 
@@ -91,4 +93,6 @@ async def export_exam(request: ExportRequest):
             headers={"Access-Control-Expose-Headers": "Content-Disposition"}
         )
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         raise HTTPException(status_code=500, detail=str(e))

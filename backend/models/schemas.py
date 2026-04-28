@@ -21,11 +21,18 @@ class BrandingInfo(BaseModel):
     uni: Optional[str] = ""
     dept: Optional[str] = ""
     logo_path: Optional[str] = None
+    enable_watermark: bool = False
+    watermark_text: Optional[str] = "CONFIDENTIAL"
 
 class StudentInfo(BaseModel):
-    enabled: bool = False
+    enabled: bool = True
     show_name: bool = True
     show_roll_no: bool = True
+    show_class: bool = True
+    show_date: bool = True
+    show_section: bool = True
+    show_bloom_tags: bool = True
+    multi_column_mcqs: bool = False
 
 # Token Schemas
 class Token(BaseModel):
