@@ -63,6 +63,13 @@ class Question(QuestionBase):
         from_attributes = True
 
 # Exam Schemas
+class SectionConfig(BaseModel):
+    type: str
+    count: int
+    marks: int
+    description: Optional[str] = None
+
+# Exam Schemas
 class ExamBase(BaseModel):
     title: str
     subject: str
@@ -76,7 +83,6 @@ class ExamBase(BaseModel):
     mcq_marks: Optional[int] = 1
     short_marks: Optional[int] = 4
     long_marks: Optional[int] = 10
-    prog_marks: Optional[int] = 15
     branding: Optional[BrandingInfo] = None
     student_info: Optional[StudentInfo] = None
 
@@ -93,16 +99,9 @@ class Exam(ExamBase):
 # Generation Request
 class GenerateRequest(BaseModel):
     session_id: str
-    mcq_count: int = 10
-    short_count: int = 5
-    long_count: int = 2
-    prog_count: int = 0
+    sections: List[SectionConfig]
     difficulty: str = "medium"
     topic: Optional[str] = None
-    mcq_marks: int = 1
-    short_marks: int = 4
-    long_marks: int = 10
-    prog_marks: int = 15
     time_limit: str = "2 Hours"
     passing_percentage: int = 40
     exam_title: str = "Final Examination"

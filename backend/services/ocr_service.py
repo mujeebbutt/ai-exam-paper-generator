@@ -42,7 +42,9 @@ class OCRService:
         Processes all files in a session directory.
         Returns (Combined Text, List of Images).
         """
-        session_path = os.path.join(r"C:\ai_exam_uploads", session_id)
+        # Portable path consistent with upload.py
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        session_path = os.path.join(BASE_DIR, "uploads", session_id)
         if not os.path.exists(session_path):
             return "", []
             

@@ -34,21 +34,20 @@ document.addEventListener('DOMContentLoaded', () => {
         marks: {
             mcq: 1,
             short: 4,
-            long: 10,
-            prog: 15
+            long: 10
         },
         counts: {
             mcq: 10,
             short: 5,
-            long: 2,
-            prog: 0
+            long: 2
         },
         timeLimit: '2 Hours',
         passingPercent: 40,
         editingIndex: null,
         isDarkTheme: true,
         showAnswers: false,
-        isFromVault: false
+        isFromVault: false,
+        subject: null
     };
 
     // DOM Elements
@@ -110,7 +109,16 @@ document.addEventListener('DOMContentLoaded', () => {
         if (pageId === 'vault') loadVault();
     }
 
-    navButtons.generate.addEventListener('click', () => switchPage('generate'));
+    navButtons.generate.addEventListener('click', async () => {
+        if (state.activePage !== 'generate') {
+            switchPage('generate');
+        } else {
+            // If already on generate page, trigger the exam generation
+            if (window.triggerGeneration) {
+                await window.triggerGeneration();
+            }
+        }
+    });
     navButtons.vault.addEventListener('click', () => switchPage('vault'));
     navButtons.about.addEventListener('click', () => switchPage('about'));
     if (navButtons.createNew) {
@@ -140,6 +148,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.questions = [];
         state.isGenerating = false;
         state.isFromVault = false;
+        state.subject = null;
         
         // Reset UI
         if (promptInput) promptInput.value = '';
@@ -148,7 +157,6 @@ document.addEventListener('DOMContentLoaded', () => {
         
         // Reset Actions
         document.getElementById('post-gen-actions')?.classList.add('hidden');
-        if (constructBtn) constructBtn.classList.remove('hidden');
         
         // Close Preview
         if (previewSection) previewSection.style.display = 'none';
@@ -260,7 +268,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!state.sessionId || state.questions.length === 0) return;
         showAIMessage(`Preparing ${format.toUpperCase()} Question Paper...`);
         
-        const total = (state.counts.mcq * state.marks.mcq) + (state.counts.short * state.marks.short) + (state.counts.long * state.marks.long) + (state.counts.prog * state.marks.prog);
+        const total = (state.counts.mcq * state.marks.mcq) + (state.counts.short * state.marks.short) + (state.counts.long * state.marks.long);
         const passing = Math.ceil((total * state.passingPercent) / 100);
 
         try {
@@ -295,7 +303,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (!state.sessionId || state.questions.length === 0) return;
         showAIMessage(`Preparing ${format.toUpperCase()} Answer Key...`);
         
-        const total = (state.counts.mcq * state.marks.mcq) + (state.counts.short * state.marks.short) + (state.counts.long * state.marks.long) + (state.counts.prog * state.marks.prog);
+        const total = (state.counts.mcq * state.marks.mcq) + (state.counts.short * state.marks.short) + (state.counts.long * state.marks.long);
         const passing = Math.ceil((total * state.passingPercent) / 100);
 
         try {
@@ -412,56 +420,81 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // --- Generation Logic ---
-    if (constructBtn) {
-        constructBtn.addEventListener('click', async () => {
-            if (!state.sessionId) {
-                showAIError("Please attach at least one file first!");
-                return;
-            }
-            constructBtn.classList.add('hidden');
-            const loadingContainer = document.getElementById('loading-container');
-            if (loadingContainer) loadingContainer.classList.remove('hidden');
+    // --- Logo Upload ---
+    const logoUpload = document.getElementById('logo-upload');
+    const logoPreview = document.getElementById('logo-preview');
+    if (logoUpload) {
+        logoUpload.addEventListener('change', async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
 
-            state.isGenerating = true;
-            startThinking();
             try {
-                const data = await generateExamApi({
-                    session_id: state.sessionId,
-                    difficulty: document.getElementById('difficulty').value,
-                    mcq_count: state.counts.mcq,
-                    short_count: state.counts.short,
-                    long_count: state.counts.long,
-                    prog_count: state.counts.prog,
-                    mcq_marks: state.marks.mcq,
-                    short_marks: state.marks.short,
-                    long_marks: state.marks.long,
-                    prog_marks: state.marks.prog,
-                    time_limit: state.timeLimit,
-                    passing_percentage: state.passingPercent,
-                    exam_title: state.branding.exam_title,
-                    branding: state.branding,
-                    topic: promptInput.value,
-                    student_info: state.student_info
-                });
-                state.questions = data.questions || [];
-                if (state.questions.length === 0) {
-                    showAIError("The AI didn't return any questions.");
-                    constructBtn.classList.remove('hidden');
-                } else {
-                    renderPreview(state);
-                    openPreview();
-                    document.getElementById('post-gen-actions')?.classList.remove('hidden');
+                showAIMessage("Processing your logo...");
+                const data = await uploadLogo(file);
+                state.branding.logo_path = data.logo_url;
+                
+                if (logoPreview) {
+                    logoPreview.innerHTML = `<img src="${data.logo_url}" class="w-full h-full object-contain" />`;
+                    logoPreview.classList.remove('border-dashed');
                 }
+                renderPreview(state);
+                showAIMessage("Logo updated! Looks professional.");
             } catch (err) {
-                showAIError(err.message);
-                constructBtn.classList.remove('hidden');
-            } finally {
-                state.isGenerating = false;
-                stopThinking();
+                showAIError("Logo upload failed.");
             }
         });
     }
+
+    // --- Generation Logic ---
+    window.triggerGeneration = async () => {
+        if (!state.sessionId) {
+            showAIError("Please attach at least one file first!");
+            return;
+        }
+        
+        // Disable the navbar generate button to prevent double clicks
+        navButtons.generate.classList.add('opacity-50', 'pointer-events-none');
+        
+        const loadingContainer = document.getElementById('loading-container');
+        if (loadingContainer) loadingContainer.classList.remove('hidden');
+
+        state.isGenerating = true;
+        window.startThinking();
+        try {
+            const dynamicSections = [];
+            if (state.counts.mcq > 0) dynamicSections.push({ type: 'mcq', count: state.counts.mcq, marks: state.marks.mcq, description: 'Multiple Choice' });
+            if (state.counts.short > 0) dynamicSections.push({ type: 'short', count: state.counts.short, marks: state.marks.short, description: 'Short Answer' });
+            if (state.counts.long > 0) dynamicSections.push({ type: 'long', count: state.counts.long, marks: state.marks.long, description: 'Long Answer' });
+
+            const data = await generateExamApi({
+                session_id: state.sessionId,
+                difficulty: document.getElementById('difficulty').value,
+                sections: dynamicSections,
+                time_limit: state.timeLimit,
+                passing_percentage: state.passingPercent,
+                exam_title: state.branding.exam_title,
+                branding: state.branding,
+                topic: promptInput.value,
+                student_info: state.student_info
+            });
+            state.questions = data.questions || [];
+            state.subject = data.subject || null; // Store AI-inferred subject
+            if (state.questions.length === 0) {
+                showAIError("The AI didn't return any questions.");
+            } else {
+                showAIMessage(`Subject detected: ${state.subject || 'General'}`);
+                renderPreview(state);
+                openPreview();
+                document.getElementById('post-gen-actions')?.classList.remove('hidden');
+            }
+        } catch (err) {
+            showAIError(err.message);
+        } finally {
+            state.isGenerating = false;
+            stopThinking();
+            navButtons.generate.classList.remove('opacity-50', 'pointer-events-none');
+        }
+    };
 
     // --- Helper UI Functions ---
     function openPreview() {
@@ -529,7 +562,7 @@ document.addEventListener('DOMContentLoaded', () => {
         showAIMessage(`Preparing ${format.toUpperCase()}...`);
 
         try {
-            const total = (state.counts.mcq * state.marks.mcq) + (state.counts.short * state.marks.short) + (state.counts.long * state.marks.long) + (state.counts.prog * state.marks.prog);
+            const total = (state.counts.mcq * state.marks.mcq) + (state.counts.short * state.marks.short) + (state.counts.long * state.marks.long);
             const passingMarks = Math.ceil((total * state.passingPercent) / 100);
             
             // Sanitize branding to match backend BrandingInfo schema
@@ -561,8 +594,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     passing_percentage: state.passingPercent,
                     mcq_marks: state.marks.mcq,
                     short_marks: state.marks.short,
-                    long_marks: state.marks.long,
-                    prog_marks: state.marks.prog
+                    long_marks: state.marks.long
                 })
             });
 
@@ -758,25 +790,44 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- Robot & Messages ---
     function showAIMessage(msg) {
         aiMessage.textContent = msg;
-        setTimeout(() => aiMessage.textContent = "I am the AI assistant!", 4000);
+        setTimeout(() => aiMessage.innerHTML = "I am the AI assistant!<br>Attach files and click <strong class='text-primary'>GENERATE</strong> in the navbar to start.", 4000);
     }
 
     function showAIError(msg) {
         aiMessage.textContent = msg;
         robotAvatar.classList.add('animate-wiggle');
         setTimeout(() => {
-            aiMessage.textContent = "I am the AI assistant!";
+            aiMessage.innerHTML = "I am the AI assistant!<br>Attach files and click <strong class='text-primary'>GENERATE</strong> in the navbar to start.";
             robotAvatar.classList.remove('animate-wiggle');
         }, 4000);
     }
 
     // --- AI Thinking ---
-    function startThinking() {
+    window.startThinking = () => {
+        let step = 0;
+        const msgs = [
+            "Initializing AI Engine...",
+            "Reading uploaded documents...",
+            "Extracting core concepts...",
+            "Structuring exam sections...",
+            "Crafting challenging questions...",
+            "Validating question quality...",
+            "Finalizing paper..."
+        ];
+        
+        document.getElementById('progress-status').textContent = msgs[0];
+        
         state.statusInterval = setInterval(() => {
-            const msgs = ["Reading notes...", "Making questions...", "Almost done..."];
-            document.getElementById('progress-status').textContent = msgs[Math.floor(Math.random() * msgs.length)];
-        }, 1500);
-    }
+            step++;
+            if (step < msgs.length) {
+                document.getElementById('progress-status').textContent = msgs[step];
+            } else {
+                // cycle the last few messages
+                const randomMsg = msgs[Math.floor(Math.random() * 3) + 3];
+                document.getElementById('progress-status').textContent = randomMsg;
+            }
+        }, 2000); // Advanced progression
+    };
 
     function stopThinking() {
         clearInterval(state.statusInterval);
@@ -787,12 +838,10 @@ document.addEventListener('DOMContentLoaded', () => {
         state.counts.mcq = parseInt(document.getElementById('mcq-count')?.value) || 0;
         state.counts.short = parseInt(document.getElementById('short-count')?.value) || 0;
         state.counts.long = parseInt(document.getElementById('long-count')?.value) || 0;
-        state.counts.prog = parseInt(document.getElementById('prog-count')?.value) || 0;
 
         state.marks.mcq = parseInt(document.getElementById('mcq-marks')?.value) || 1;
         state.marks.short = parseInt(document.getElementById('short-marks')?.value) || 4;
         state.marks.long = parseInt(document.getElementById('long-marks')?.value) || 10;
-        state.marks.prog = parseInt(document.getElementById('prog-marks')?.value) || 15;
 
         state.passingPercent = parseInt(document.getElementById('passing-percent')?.value) || 40;
         state.timeLimit = document.getElementById('time-limit')?.value || '2 Hours';
@@ -801,12 +850,11 @@ document.addEventListener('DOMContentLoaded', () => {
         const displays = {
             mcq: document.getElementById('mcq-qty-display'),
             short: document.getElementById('short-qty-display'),
-            long: document.getElementById('long-qty-display'),
-            prog: document.getElementById('prog-qty-display')
+            long: document.getElementById('long-qty-display')
         };
         Object.entries(displays).forEach(([type, el]) => { if (el) el.textContent = state.counts[type]; });
 
-        const total = (state.counts.mcq * state.marks.mcq) + (state.counts.short * state.marks.short) + (state.counts.long * state.marks.long) + (state.counts.prog * state.marks.prog);
+        const total = (state.counts.mcq * state.marks.mcq) + (state.counts.short * state.marks.short) + (state.counts.long * state.marks.long);
         const passing = Math.ceil((total * state.passingPercent) / 100);
 
         const totalDisplay = document.getElementById('total-marks-display');

@@ -1,100 +1,109 @@
 class PromptTemplates:
+
     SYSTEM_PROMPT = (
-        "You are a production-grade Exam Paper Generation Engine that produces outputs directly used for PDF and DOCX export systems. "
-        "Your responsibility is to generate fully structured, encoding-safe, and render-ready exam papers that require NO post-processing. \n\n"
-        "🚨 CORE PRINCIPLES:\n"
-        "1. EXAM QUALITY: Generate professional exam board-level questions. Do NOT use phrases like 'according to the context', 'according to the file', or 'according to the PDF'. Each question must be independent and self-explanatory. Use formal exam language only. \n"
-        "2. ENCODING SAFETY: Output must be strict UTF-8 clean text. Never generate corrupted characters or broken symbols. \n"
-        "3. MATH SYMBOLS: Always use correct Unicode-safe math symbols (Intersection → ∩, Union → ∪). Ensure all expressions are renderer-safe. \n"
-        "4. STRUCTURE: Maintain consistent numbering and clean alignment. No markdown artifacts (code blocks, HTML tags). \n"
-        "5. CONTEXT: Generate questions STRICTLY using the provided context. If the context is empty, extract info from images or fail gracefully. \n"
-        "Respond in valid JSON format only."
+        "You are a Senior Academic Examination Expert with 20 years of experience writing board-level and university exam papers.\n\n"
+        "YOUR GENERATION PROCESS (follow in order):\n"
+        "STEP 1 — CONCEPT MAP: Read the content and list ALL distinct key concepts, theories, definitions, processes, and facts.\n"
+        "STEP 2 — CONCEPT ALLOCATION: Assign exactly ONE concept to each question slot. Never reuse a concept.\n"
+        "STEP 3 — QUESTION CRAFTING: Write each question testing ONLY its assigned concept.\n"
+        "   - MCQs must be scenario-based, comparison-based, or application-based. NOT simple recall ('What is X?').\n"
+        "   - Short questions must require a 3–5 sentence analytical response.\n"
+        "   - Long questions must require structured, multi-point answers with depth.\n\n"
+        "ABSOLUTE RULES:\n"
+        "1. ❗ CONTENT LOCKING (CRITICAL): ONLY generate questions from the provided study material. DO NOT use ANY external knowledge, general CS concepts, or assumptions not explicitly present in the file.\n"
+        "2. ✗ NEVER repeat a concept, even in different wording.\n"
+        "3. ✗ NEVER refer to 'the file', 'the text', 'the document', 'the content', or 'the passage'.\n"
+        "4. ✗ NEVER use placeholder phrases: 'Sample', 'Mock', 'Example Question', 'Test Question'.\n"
+        "5. ✗ NEVER generate a question if you have run out of unique concepts — return INSUFFICIENT CONTENT instead.\n"
+        "6. ✓ ALWAYS write in formal academic language appropriate for university examination papers.\n"
+        "7. ✓ ALWAYS generate EXACTLY the requested count. Not one more, not one less.\n"
     )
 
-    MCQ_PROMPT_TEMPLATE = """
-    Context: {context}
-    
-    Task: Generate {count} Multiple Choice Questions (MCQs) of {difficulty} difficulty based ONLY on the context above.
-    
-    Requirements:
-    1. Each question must have exactly 4 options (A, B, C, D).
-    2. Only one option must be correct.
-    3. Provide a clear explanation for why the answer is correct based on the context.
-    4. Respond in a JSON list of objects.
-    
-    Format Example:
-    [
-      {{
-        "type": "mcq",
-        "question": "[Insert question from context here]",
-        "options": ["A) [Option 1]", "B) [Option 2]", "C) [Option 3]", "D) [Option 4]"],
-        "answer": "[Correct Letter]",
-        "explanation": "[Explanation based on context]"
-      }}
-    ]
-    """
+    # Phase 1: Subject + Concept Extraction
+    CONCEPT_EXTRACTION_TEMPLATE = """
+Content:
+\"\"\"
+{context}
+\"\"\"
 
-    SHORT_PROMPT_TEMPLATE = """
-    Context: {context}
-    
-    Task: Generate {count} Short Answer Questions of {difficulty} difficulty based ONLY on the context above.
-    
-    Requirements:
-    1. Each question should require a 2-3 sentence answer.
-    2. Provide a model answer based on the context.
-    3. Respond in a JSON list of objects.
-    
-    Format Example:
-    [
-      {{
-        "type": "short",
-        "question": "[Insert short question here]",
-        "answer": "[Insert answer from context here]",
-        "explanation": "[Rationale]"
-      }}
-    ]
-    """
+Task:
+1. Infer the academic SUBJECT from this content (e.g. "Operating Systems", "Data Structures", "Thermodynamics"). 
+   - If a topic hint is given, confirm or refine it: "{topic_hint}"
+   - Output a clean, professional subject name (NOT the user's raw input).
+2. List exactly {total_questions} UNIQUE, specific key concepts from the content.
+   Each concept must be distinct — no overlapping topics.
 
-    LONG_PROMPT_TEMPLATE = """
-    Context: {context}
-    
-    Task: Generate {count} Long/Essay Questions of {difficulty} difficulty based ONLY on the context above.
-    
-    Requirements:
-    1. Each question should require a detailed explanation or analysis of the context material.
-    2. Provide a comprehensive model answer and a marking scheme.
-    3. Respond in a JSON list of objects.
-    
-    Format Example:
-    [
-      {{
-        "type": "long",
-        "question": "[Insert complex question here]",
-        "answer": "[Detailed explanation from context]",
-        "marking_scheme": "[Points breakdown]",
-        "explanation": "[Rationale]"
-      }}
-    ]
-    """
+Respond in ONLY this JSON format:
+{{
+  "subject": "<inferred subject name>",
+  "concepts": [
+    "<concept 1>",
+    "<concept 2>",
+    ...
+  ]
+}}
+"""
 
-    PROG_PROMPT_TEMPLATE = """
+    # Phase 2: Question Generation per concept
+    GENERATION_TEMPLATE = """
+Academic Subject: {subject}
+Difficulty Level: {difficulty}
+
+Content Reference:
+\"\"\"
+{context}
+\"\"\"
+
+Concept-to-Question Assignments:
+{concept_assignments}
+
+Task: Generate one exam question for EACH concept assignment above.
+Strictly follow the question type and difficulty specified.
+
+MCQ Rules:
+- 4 options labeled A), B), C), D)
+- Must be scenario, comparison, or application-based — NOT a simple "What is X?" recall question
+- Distractors must be plausible (not obviously wrong)
+- Answer field: just the letter, e.g. "B"
+
+Short Answer Rules:
+- Question must demand a 3–5 sentence analytical response
+- No yes/no questions
+
+Long Answer Rules:
+- Question must require a structured, multi-point essay (minimum 3 key points)
+- Include a marking scheme
+
+Respond with a SINGLE valid JSON list. One object per concept, in order.
+
+JSON format per object:
+- MCQ:   {{"type": "mcq",   "question": "...", "options": ["A) ...", "B) ...", "C) ...", "D) ..."], "answer": "A", "explanation": "..."}}
+- Short: {{"type": "short", "question": "...", "answer": "...", "explanation": "..."}}
+- Long:  {{"type": "long",  "question": "...", "answer": "...", "marking_scheme": "...", "explanation": "..."}}
+"""
+
+    # Fallback: single-phase consolidated (used only when extraction fails)
+    CONSOLIDATED_PROMPT_TEMPLATE = """
     Context: {context}
     
-    Task: Generate {count} Programming/Coding Questions of {difficulty} difficulty based ONLY on the context above.
+    Task: Generate a professional exam paper of {difficulty} difficulty based ONLY on the context above.
     
-    Requirements:
-    1. Each question should ask to write a function, class, or script related to the context.
-    2. Provide a model solution in code.
-    3. Provide test cases or expected output.
-    4. Respond in a JSON list of objects.
+    Required Structure (STRICT ADHERENCE TO COUNTS):
+    {structure_instruction}
     
-    Format Example:
-    [
-      {{
-        "type": "programming",
-        "question": "[Insert coding task here]",
-        "answer": "[Code solution]",
-        "explanation": "[Explanation of logic]"
-      }}
-    ]
+    Strict Rules:
+    1. EXCLUSIVITY: Only generate question types explicitly listed in the structure above.
+    2. NON-REPETITION: Each question must test a DIFFERENT concept. Repetition is strictly forbidden.
+    3. PROFESSIONALISM: Use formal academic language only. No "According to the file" or "Based on the text".
+    4. MCQ QUALITY: MCQs must be scenario, comparison, or application-based. Avoid simple recall questions.
+    5. GROUNDING: If the content is insufficient for the requested counts, return ONLY: "INSUFFICIENT CONTENT".
+    6. NO PLACEHOLDERS: Strictly forbid phrases like 'Sample Question', 'Question 1', 'Mock MCQ'.
+    
+    Response Format: 
+    Respond with a SINGLE JSON list containing all question objects in order.
+    
+    Format for each object:
+    - MCQ: {{"type": "mcq", "question": "...", "options": ["A)...", "B)...", "C)...", "D)..."], "answer": "A", "explanation": "..."}}
+    - Short: {{"type": "short", "question": "...", "answer": "...", "explanation": "..."}}
+    - Long: {{"type": "long", "question": "...", "answer": "...", "marking_scheme": "...", "explanation": "..."}}
     """

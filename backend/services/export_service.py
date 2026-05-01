@@ -25,42 +25,39 @@ class ExportService:
             self.output_dir = os.path.join(tempfile.gettempdir(), "ai_exam_exports")
             os.makedirs(self.output_dir, exist_ok=True)
 
-    def _sanitize_filename(self, name: str) -> str:
+    def _sanitize_filename(self, name: str, max_len: int = 30) -> str:
         import re
-        if not name or str(name).lower() == "assessment" or str(name).lower() == "exam":
-            return "" # Return empty if it's just a placeholder
+        if not name or str(name).lower() in ("assessment", "exam", "general"):
+            return ""  # Return empty if it's just a placeholder
         # Replace spaces and special chars with underscores
         name = re.sub(r'[^a-zA-Z0-9]', '_', str(name).strip())
         # Remove multiple underscores
         name = re.sub(r'_+', '_', name).strip('_')
-        return name
+        # Truncate to avoid MAX_PATH issues on Windows
+        return name[:max_len]
 
     def _get_export_path(self, subject: str, format_type: str) -> str:
         """
         Creates and returns path: /exports/Subject/PDF or /exports/Subject/DOCX
+        Subject folder name is capped at 30 chars to avoid Windows path length limits.
         """
-        clean_subject = self._sanitize_filename(subject) or "General"
-        # Capitalize first letter for folder name
-        folder_name = clean_subject.capitalize()
-        path = os.path.join(self.output_dir, folder_name, format_type.upper())
+        clean_subject = self._sanitize_filename(subject, max_len=30) or "General"
+        path = os.path.join(self.output_dir, clean_subject, format_type.upper())
         os.makedirs(path, exist_ok=True)
         return path
 
     def _generate_clean_filename(self, subject: str, topic: str, doc_type: str, ext: str) -> str:
         """
-        Generates filename: Subject_Topic_Type.ext
+        Generates filename: Subject_Type.ext — kept short to avoid path length issues.
         """
-        s = self._sanitize_filename(subject)
-        t = self._sanitize_filename(topic)
-        
+        s = self._sanitize_filename(subject, max_len=20)
         parts = []
-        if s: parts.append(s)
-        if t: parts.append(t)
-        parts.append(doc_type) # e.g. Exam, Paper, Quiz
-        
+        if s:
+            parts.append(s)
+        parts.append(doc_type)  # e.g. Exam, Paper, Key
         return "_".join(parts) + f".{ext}"
 
-    def generate_docx_file(self, session_id: str, questions: list, branding=None, student_info=None, is_answer_key=False, include_answers=True, subject="Exam", topic="Assessment", exam_title="Final Examination", time_limit="2 Hours", total_marks=100, passing_marks=40, passing_percentage=40, mcq_marks=1, short_marks=4, long_marks=10, prog_marks=15) -> str:
+    def generate_docx_file(self, session_id: str, questions: list, branding=None, student_info=None, is_answer_key=False, include_answers=True, subject="Exam", topic="Assessment", exam_title="Final Examination", time_limit="2 Hours", total_marks=100, passing_marks=40, passing_percentage=40, mcq_marks=1, short_marks=4, long_marks=10) -> str:
         doc = Document()
         
         # Header Table for Logo and Title
@@ -153,7 +150,7 @@ class ExportService:
             doc.add_paragraph("ANSWER KEY").alignment = WD_ALIGN_PARAGRAPH.CENTER
             self._write_docx_answer_key(doc, questions, student_info)
         else:
-            self._write_docx_question_paper(doc, questions, include_answers, mcq_marks, short_marks, long_marks, prog_marks, student_info)
+            self._write_docx_question_paper(doc, questions, include_answers, mcq_marks, short_marks, long_marks, student_info)
 
         # File Naming & Folder Structure
         export_dir = self._get_export_path(subject, "DOCX")
@@ -164,11 +161,10 @@ class ExportService:
         doc.save(file_path)
         return file_path
 
-    def _write_docx_question_paper(self, doc, questions, include_answers, mcq_marks, short_marks, long_marks, prog_marks, student_info=None):
+    def _write_docx_question_paper(self, doc, questions, include_answers, mcq_marks, short_marks, long_marks, student_info=None):
         mcqs = [q for q in questions if q['type'].lower() == 'mcq']
         shorts = [q for q in questions if q['type'].lower() == 'short']
         longs = [q for q in questions if q['type'].lower() == 'long']
-        progs = [q for q in questions if q['type'].lower() == 'programming']
 
         q_count = 1
         show_bloom = student_info and getattr(student_info, 'show_bloom_tags', False)
@@ -227,25 +223,11 @@ class ExportService:
                 q_count += 1
             doc.add_paragraph()
 
-        if longs:
-            doc.add_paragraph(f"SECTION C: Long Answer Questions ({len(longs)} × {long_marks} = {len(longs)*long_marks} marks)").bold = True
-            doc.add_paragraph("Instruction: Attempt all questions. Answer in detail.").italic = True
             for q in longs:
                 p = doc.add_paragraph()
                 bloom_tag = f"[{q.get('bloom_level', 'Apply')}] " if show_bloom else ""
                 p.add_run(f"Q{q_count}. ").bold = True
                 p.add_run(f"{bloom_tag}{q['question']} ({long_marks} marks)")
-                q_count += 1
-            doc.add_paragraph()
-
-        if progs:
-            doc.add_paragraph(f"SECTION D: Programming Questions ({len(progs)} × {prog_marks} = {len(progs)*prog_marks} marks)").bold = True
-            doc.add_paragraph("Instruction: Attempt all questions. Write clear and efficient code.").italic = True
-            for q in progs:
-                p = doc.add_paragraph()
-                bloom_tag = f"[{q.get('bloom_level', 'Apply')}] " if show_bloom else ""
-                p.add_run(f"Q{q_count}. ").bold = True
-                p.add_run(f"{bloom_tag}{q['question']} ({prog_marks} marks)")
                 q_count += 1
             doc.add_paragraph()
 
@@ -264,7 +246,7 @@ class ExportService:
             doc.add_paragraph()
             q_count += 1
 
-    async def generate_pdf_file(self, session_id: str, questions: list, branding=None, student_info=None, is_answer_key=False, include_answers=True, subject="Exam", topic="Assessment", exam_title="Final Examination", time_limit="2 Hours", total_marks=100, passing_marks=40, passing_percentage=40, mcq_marks=1, short_marks=4, long_marks=10, prog_marks=15) -> str:
+    async def generate_pdf_file(self, session_id: str, questions: list, branding=None, student_info=None, is_answer_key=False, include_answers=True, subject="Exam", topic="Assessment", exam_title="Final Examination", time_limit="2 Hours", total_marks=100, passing_marks=40, passing_percentage=40, mcq_marks=1, short_marks=4, long_marks=10) -> str:
         try:
             watermark_text = branding.watermark_text if branding and getattr(branding, 'enable_watermark', False) else None
             pdf = PDFWithWatermark(watermark_text=watermark_text)
@@ -345,7 +327,7 @@ class ExportService:
                 pdf.ln(5)
                 self._write_pdf_answer_key(pdf, questions, effective_width, student_info)
             else:
-                self._write_pdf_question_paper(pdf, questions, effective_width, include_answers, mcq_marks, short_marks, long_marks, prog_marks, student_info)
+                self._write_pdf_question_paper(pdf, questions, effective_width, include_answers, mcq_marks, short_marks, long_marks, student_info)
 
             export_dir = self._get_export_path(subject, "PDF")
             filename = f"{subject}_{total_marks}Marks.{'pdf' if not is_answer_key else 'key.pdf'}"
@@ -365,11 +347,10 @@ class ExportService:
             text = text.replace(char, replacement)
         return text.encode('latin-1', 'replace').decode('latin-1')
 
-    def _write_pdf_question_paper(self, pdf, questions, effective_width, include_answers, mcq_marks, short_marks, long_marks, prog_marks, student_info=None):
+    def _write_pdf_question_paper(self, pdf, questions, effective_width, include_answers, mcq_marks, short_marks, long_marks, student_info=None):
         mcqs = [q for q in questions if q['type'].lower() == 'mcq']
         shorts = [q for q in questions if q['type'].lower() == 'short']
         longs = [q for q in questions if q['type'].lower() == 'long']
-        progs = [q for q in questions if q['type'].lower() == 'programming']
 
         q_count = 1
         show_bloom = student_info and getattr(student_info, 'show_bloom_tags', False)
@@ -419,8 +400,7 @@ class ExportService:
 
         for section_title, qs, marks, instr in [
             ("SECTION B: Short Answer Questions", shorts, short_marks, "Instruction: Attempt all questions. Answer briefly."),
-            ("SECTION C: Long Answer Questions", longs, long_marks, "Instruction: Attempt all questions. Answer in detail."),
-            ("SECTION D: Programming Questions", progs, prog_marks, "Instruction: Attempt all questions. Write clear and efficient code.")
+            ("SECTION C: Long Answer Questions", longs, long_marks, "Instruction: Attempt all questions. Answer in detail.")
         ]:
             if qs:
                 pdf.set_font("Arial", 'B', 12)

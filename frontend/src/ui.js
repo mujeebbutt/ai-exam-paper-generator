@@ -89,9 +89,11 @@ function renderPreview(state) {
     // Calculate Stats for Header
     const total = (state.counts.mcq * state.marks.mcq) +
         (state.counts.short * state.marks.short) +
-        (state.counts.long * state.marks.long) +
-        (state.counts.prog * state.marks.prog);
+        (state.counts.long * state.marks.long);
     const passing = Math.ceil((total * state.passingPercent) / 100);
+
+    // Use AI-inferred subject, falling back to dept name, then 'General'
+    const displaySubject = state.subject || state.branding.dept || 'General';
 
     // Professional Header in Preview
     if (state.branding.enabled) {
@@ -110,7 +112,7 @@ function renderPreview(state) {
                 <p class="text-sm font-medium text-white/40">${state.branding.dept || ''}</p>
             </div>
             <div class="flex flex-wrap justify-center gap-6 pt-4">
-                <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40">Subject: <span class="text-white">${promptInput.value || 'General'}</span></div>
+                <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40">Subject: <span class="text-white">${displaySubject}</span></div>
                 <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40">Time: <span class="text-white">${state.timeLimit}</span></div>
                 <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40">Total Marks: <span class="text-white">${total}</span></div>
                 <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40">Passing: <span class="text-white">${passing} (${state.passingPercent}%)</span></div>
@@ -120,7 +122,7 @@ function renderPreview(state) {
         html += `
         <div class="text-center space-y-4 mb-10 border-b border-white/10 pb-10">
             <div class="flex flex-wrap justify-center gap-6 pt-4">
-                <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40">Subject: <span class="text-white">${promptInput.value || 'General'}</span></div>
+                <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40">Subject: <span class="text-white">${displaySubject}</span></div>
                 <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40">Time: <span class="text-white">${state.timeLimit}</span></div>
                 <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40">Total Marks: <span class="text-white">${total}</span></div>
                 <div class="px-4 py-2 bg-white/5 rounded-xl border border-white/5 text-[10px] font-black uppercase tracking-widest text-white/40">Passing: <span class="text-white">${passing} (${state.passingPercent}%)</span></div>
@@ -173,7 +175,6 @@ function renderPreview(state) {
     const mcqs = state.questions.filter(q => q.type.toLowerCase() === 'mcq');
     const shorts = state.questions.filter(q => q.type.toLowerCase() === 'short');
     const longs = state.questions.filter(q => q.type.toLowerCase() === 'long');
-    const progs = state.questions.filter(q => q.type.toLowerCase() === 'programming');
 
     let qIndex = 1;
 
@@ -240,7 +241,6 @@ function renderPreview(state) {
     html += renderSection("Multiple Choice Questions", mcqs, state.marks.mcq, "Part A: Select the most appropriate option for each question.", "SECTION A");
     html += renderSection("Short Answer Questions", shorts, state.marks.short, "Part B: Provide concise answers for the following questions.", "SECTION B");
     html += renderSection("Long Answer Questions", longs, state.marks.long, "Part C: Provide detailed answers for the following questions.", "SECTION C");
-    html += renderSection("Programming Questions", progs, state.marks.prog, "Part D: Write clean, commented code for the following problems.", "SECTION D");
 
     html += `</div>`;
     previewContent.innerHTML = html;

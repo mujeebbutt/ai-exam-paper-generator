@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db.database import engine, Base
 from routers import upload, generate, export, bank
+from fastapi.staticfiles import StaticFiles
 import os
 import logging
 
@@ -26,6 +27,10 @@ app.include_router(upload.router, prefix="/api", tags=["Upload"])
 app.include_router(generate.router, prefix="/api", tags=["Generate"])
 app.include_router(export.router, prefix="/api", tags=["Export"])
 app.include_router(bank.router, prefix="/api", tags=["Bank"])
+
+# Serve static files (for logos, etc.)
+os.makedirs("static", exist_ok=True)
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 async def root():

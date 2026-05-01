@@ -28,7 +28,6 @@ class ExportRequest(BaseModel):
     mcq_marks: Optional[int] = 1
     short_marks: Optional[int] = 4
     long_marks: Optional[int] = 10
-    prog_marks: Optional[int] = 15
 
 @router.post("/export")
 async def export_exam(request: ExportRequest):
@@ -55,7 +54,6 @@ async def export_exam(request: ExportRequest):
                 mcq_marks=request.mcq_marks,
                 short_marks=request.short_marks,
                 long_marks=request.long_marks,
-                prog_marks=request.prog_marks,
                 student_info=request.student_info
             )
             media_type = "application/pdf"
@@ -76,7 +74,6 @@ async def export_exam(request: ExportRequest):
                 mcq_marks=request.mcq_marks,
                 short_marks=request.short_marks,
                 long_marks=request.long_marks,
-                prog_marks=request.prog_marks,
                 student_info=request.student_info
             )
             media_type = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"

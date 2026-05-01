@@ -47,7 +47,6 @@ class Exam(Base):
     mcq_marks = Column(Integer)
     short_marks = Column(Integer)
     long_marks = Column(Integer)
-    prog_marks = Column(Integer)
     branding = Column(JSON) # Store uni, dept, logo_path
     student_info = Column(JSON) # Store enabled, show_name, show_roll_no
     questions_data = Column(JSON) # List of question IDs or snapshot
