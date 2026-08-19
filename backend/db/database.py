@@ -1,13 +1,16 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import logging
 import os
+
 
 # Get the absolute path for the database file
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DB_DIR = os.path.join(BASE_DIR, "data")
 SQLALCHEMY_DATABASE_URL = f"sqlite:///{os.path.join(DB_DIR, 'exam_generator.db')}"
-print(f"DEBUG: Database URL is {SQLALCHEMY_DATABASE_URL}")
+logging.info(f"Database URL: {SQLALCHEMY_DATABASE_URL}")
+
 
 # Ensure data directory exists
 os.makedirs(DB_DIR, exist_ok=True)

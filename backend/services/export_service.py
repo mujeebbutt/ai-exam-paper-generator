@@ -8,7 +8,7 @@ from datetime import datetime
 
 class ExportService:
     def __init__(self):
-        print("DEBUG: ExportService class initialized")
+
         # Base exports directory - use project relative path to avoid permission issues
         # This will create an 'exports' folder inside your AI_Exam_Generator directory
         current_dir = os.path.dirname(os.path.abspath(__file__)) # backend/services
@@ -223,6 +223,9 @@ class ExportService:
                 q_count += 1
             doc.add_paragraph()
 
+        if longs:
+            doc.add_paragraph(f"SECTION C: Long Answer Questions ({len(longs)} × {long_marks} = {len(longs)*long_marks} marks)").bold = True
+            doc.add_paragraph("Instruction: Attempt all questions. Answer in detail.").italic = True
             for q in longs:
                 p = doc.add_paragraph()
                 bloom_tag = f"[{q.get('bloom_level', 'Apply')}] " if show_bloom else ""
@@ -230,6 +233,8 @@ class ExportService:
                 p.add_run(f"{bloom_tag}{q['question']} ({long_marks} marks)")
                 q_count += 1
             doc.add_paragraph()
+
+
 
     def _write_docx_answer_key(self, doc, questions, student_info=None):
         q_count = 1

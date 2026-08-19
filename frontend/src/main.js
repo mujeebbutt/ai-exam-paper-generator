@@ -50,6 +50,13 @@ document.addEventListener('DOMContentLoaded', () => {
         subject: null
     };
 
+    // Make state globally accessible for debugging
+    window.__appState = state;
+
+    // Upload control flags
+    let isUploading = false;
+    let isLogoUploading = false;
+
     // DOM Elements
     const pages = {
         generate: document.getElementById('page-generate'),
@@ -66,7 +73,6 @@ document.addEventListener('DOMContentLoaded', () => {
     const fileUpload = document.getElementById('file-upload');
     const uploadTrigger = document.getElementById('upload-trigger');
     const promptInput = document.getElementById('prompt-input');
-    const constructBtn = document.getElementById('construct-btn');
     const previewSection = document.getElementById('preview-section');
     const robotAvatar = document.getElementById('robot-avatar');
     const aiMessage = document.getElementById('ai-message');
@@ -96,52 +102,41 @@ document.addEventListener('DOMContentLoaded', () => {
         state.activePage = pageId;
 
         const aiHelper = document.getElementById('ai-helper');
-        if (pageId === 'generate') {
-            aiHelper.style.display = 'flex';
-        } else {
-            aiHelper.style.display = 'none';
-            if (previewSection) {
-                previewSection.classList.add('hidden');
-                previewSection.style.display = 'none';
+        if (aiHelper) {
+            if (pageId === 'generate') {
+                aiHelper.style.display = 'flex';
+            } else {
+                aiHelper.style.display = 'none';
+                if (previewSection) {
+                    previewSection.classList.add('hidden');
+                    previewSection.style.display = 'none';
+                }
             }
         }
 
         if (pageId === 'vault') loadVault();
     }
 
-    navButtons.generate.addEventListener('click', async () => {
-        if (state.activePage !== 'generate') {
-            switchPage('generate');
-        } else {
-            // If already on generate page, trigger the exam generation
-            if (window.triggerGeneration) {
-                await window.triggerGeneration();
-            }
-        }
-    });
-    navButtons.vault.addEventListener('click', () => switchPage('vault'));
-    navButtons.about.addEventListener('click', () => switchPage('about'));
-    if (navButtons.createNew) {
-        navButtons.createNew.addEventListener('click', () => {
-            // Only prompt if questions exist AND they are NOT from the vault (newly generated)
-            if (state.questions.length > 0 && !state.isFromVault) {
-                document.getElementById('reset-modal').style.display = 'flex';
+    // Nav button event listeners
+    if (navButtons.generate) {
+        navButtons.generate.addEventListener('click', async () => {
+            if (state.activePage !== 'generate') {
+                switchPage('generate');
             } else {
-                performFullReset();
+                if (window.triggerGeneration) {
+                    await window.triggerGeneration();
+                }
             }
         });
     }
+    if (navButtons.vault) {
+        navButtons.vault.addEventListener('click', () => switchPage('vault'));
+    }
+    if (navButtons.about) {
+        navButtons.about.addEventListener('click', () => switchPage('about'));
+    }
 
-    // Modal Action Buttons
-    document.getElementById('confirm-reset')?.addEventListener('click', () => {
-        performFullReset();
-        document.getElementById('reset-modal').style.display = 'none';
-    });
-
-    document.getElementById('cancel-reset')?.addEventListener('click', () => {
-        document.getElementById('reset-modal').style.display = 'none';
-    });
-
+    // --- Reset Functions ---
     function performFullReset() {
         state.sessionId = null;
         state.files = [];
@@ -150,20 +145,23 @@ document.addEventListener('DOMContentLoaded', () => {
         state.isFromVault = false;
         state.subject = null;
         
-        // Reset UI
+        // Clear stored session
+        sessionStorage.removeItem('exam_session_id');
+        window._lastSessionId = null;
+        
         if (promptInput) promptInput.value = '';
         if (fileUpload) fileUpload.value = '';
         renderFileList([], 'done');
         
-        // Reset Actions
-        document.getElementById('post-gen-actions')?.classList.add('hidden');
+        const postGenActions = document.getElementById('post-gen-actions');
+        if (postGenActions) postGenActions.classList.add('hidden');
         
-        // Close Preview
-        if (previewSection) previewSection.style.display = 'none';
+        if (previewSection) {
+            previewSection.classList.add('hidden');
+            previewSection.style.display = 'none';
+        }
         
-        // Switch to generate page
         switchPage('generate');
-        
         showAIMessage("System reset. Let's create something new!");
     }
 
@@ -176,38 +174,91 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             performFullReset();
         }
-        document.getElementById('reset-modal').style.display = 'none';
+        const resetModal = document.getElementById('reset-modal');
+        if (resetModal) resetModal.style.display = 'none';
     };
+
+    // Modal buttons
+    const confirmReset = document.getElementById('confirm-reset');
+    if (confirmReset) {
+        confirmReset.addEventListener('click', () => {
+            performFullReset();
+            const resetModal = document.getElementById('reset-modal');
+            if (resetModal) resetModal.style.display = 'none';
+        });
+    }
+
+    const cancelReset = document.getElementById('cancel-reset');
+    if (cancelReset) {
+        cancelReset.addEventListener('click', () => {
+            const resetModal = document.getElementById('reset-modal');
+            if (resetModal) resetModal.style.display = 'none';
+        });
+    }
+
+    // Create New button
+    if (createNewBtnMain) {
+        createNewBtnMain.addEventListener('click', () => {
+            if (state.questions.length > 0 && !state.isFromVault) {
+                const resetModal = document.getElementById('reset-modal');
+                if (resetModal) resetModal.style.display = 'flex';
+            } else {
+                performFullReset();
+            }
+        });
+    }
 
     // --- Branding & Settings Logic ---
     if (toggleBranding && brandingPanel) {
         toggleBranding.addEventListener('click', () => brandingPanel.classList.toggle('hidden'));
     }
 
-    if (uniInput) uniInput.addEventListener('input', (e) => { state.branding.uni = e.target.value; renderPreview(state); });
-    if (deptInput) deptInput.addEventListener('input', (e) => { state.branding.dept = e.target.value; renderPreview(state); });
-    if (examTitleInput) examTitleInput.addEventListener('input', (e) => { state.branding.exam_title = e.target.value; renderPreview(state); });
+    if (uniInput) {
+        uniInput.addEventListener('input', (e) => {
+            state.branding.uni = e.target.value;
+            renderPreview(state);
+        });
+    }
+    if (deptInput) {
+        deptInput.addEventListener('input', (e) => {
+            state.branding.dept = e.target.value;
+            renderPreview(state);
+        });
+    }
+    if (examTitleInput) {
+        examTitleInput.addEventListener('input', (e) => {
+            state.branding.exam_title = e.target.value;
+            renderPreview(state);
+        });
+    }
 
     // Student Info Checkboxes
     ['name', 'roll', 'class', 'section', 'date'].forEach(field => {
         const el = document.getElementById(`show-student-${field}`);
-        if (el) el.addEventListener('change', (e) => {
-            state.student_info[`show_${field === 'roll' ? 'roll_no' : field}`] = e.target.checked;
-            renderPreview(state);
-        });
+        if (el) {
+            el.addEventListener('change', (e) => {
+                const key = field === 'roll' ? 'show_roll_no' : `show_${field}`;
+                state.student_info[key] = e.target.checked;
+                renderPreview(state);
+            });
+        }
     });
 
     const bloomToggle = document.getElementById('show-bloom-tags');
-    if (bloomToggle) bloomToggle.addEventListener('change', (e) => {
-        state.student_info.show_bloom_tags = e.target.checked;
-        renderPreview(state);
-    });
+    if (bloomToggle) {
+        bloomToggle.addEventListener('change', (e) => {
+            state.student_info.show_bloom_tags = e.target.checked;
+            renderPreview(state);
+        });
+    }
 
     const multiColToggle = document.getElementById('multi-column-mcqs');
-    if (multiColToggle) multiColToggle.addEventListener('change', (e) => {
-        state.student_info.multi_column_mcqs = e.target.checked;
-        renderPreview(state);
-    });
+    if (multiColToggle) {
+        multiColToggle.addEventListener('change', (e) => {
+            state.student_info.multi_column_mcqs = e.target.checked;
+            renderPreview(state);
+        });
+    }
 
     // Question Blueprint Inputs
     ['mcq', 'short', 'long'].forEach(type => {
@@ -216,12 +267,250 @@ document.addEventListener('DOMContentLoaded', () => {
         if (countInput) countInput.addEventListener('input', window.updateLiveMarks);
         if (marksInput) marksInput.addEventListener('input', window.updateLiveMarks);
     });
-    if (createNewBtnMain) {
-        createNewBtnMain.addEventListener('click', () => {
-            if (state.questions.length > 0 && !state.isFromVault) {
-                document.getElementById('reset-modal').style.display = 'flex';
-            } else {
-                performFullReset();
+
+    // Branding toggle
+    const brandingToggle = document.getElementById('branding-toggle');
+    const brandingOptions = document.getElementById('branding-options');
+    if (brandingToggle && brandingOptions) {
+        brandingToggle.addEventListener('change', (e) => {
+            state.branding.enabled = e.target.checked;
+            brandingOptions.classList.toggle('hidden', !e.target.checked);
+            renderPreview(state);
+        });
+    }
+
+    // Watermark toggle
+    const watermarkToggle = document.getElementById('watermark-toggle');
+    const watermarkOptions = document.getElementById('watermark-options');
+    const watermarkText = document.getElementById('watermark-text');
+    if (watermarkToggle && watermarkOptions) {
+        watermarkToggle.addEventListener('change', (e) => {
+            state.branding.enable_watermark = e.target.checked;
+            watermarkOptions.classList.toggle('hidden', !e.target.checked);
+            renderPreview(state);
+        });
+    }
+    if (watermarkText) {
+        watermarkText.addEventListener('input', (e) => {
+            state.branding.watermark_text = e.target.value;
+            renderPreview(state);
+        });
+    }
+
+    // Student info toggle
+    const studentInfoToggle = document.getElementById('student-info-toggle');
+    const studentInfoOptions = document.getElementById('student-info-options');
+    if (studentInfoToggle && studentInfoOptions) {
+        studentInfoToggle.addEventListener('change', (e) => {
+            state.student_info.enabled = e.target.checked;
+            studentInfoOptions.classList.toggle('hidden', !e.target.checked);
+            renderPreview(state);
+        });
+    }
+
+    // --- File Handling ---
+    function renderFileList(files, status) {
+        const fileList = document.getElementById('file-list');
+        const fileCount = document.getElementById('file-count');
+        
+        if (!fileList) return;
+        
+        if (!files || files.length === 0) {
+            fileList.innerHTML = '';
+            if (fileCount) {
+                fileCount.classList.add('hidden');
+                fileCount.textContent = '0';
+            }
+            return;
+        }
+        
+        if (fileCount) {
+            fileCount.textContent = files.length;
+            fileCount.classList.remove('hidden');
+        }
+        
+        const statusIndicator = status === 'uploading' ? '⏳' : '✅';
+        
+        fileList.innerHTML = files.map((file, index) => `
+            <span class="px-3 py-1 bg-white/5 rounded-full text-[8px] font-black text-white/60 border border-white/5 flex items-center gap-1 group">
+                ${statusIndicator} ${file.name.length > 15 ? file.name.substring(0, 12) + '...' : file.name}
+                <span onclick="removeFile(${index})" 
+                      class="cursor-pointer text-white/20 hover:text-rose-500 transition-colors ml-1 text-xs font-bold">
+                    ×
+                </span>
+            </span>
+        `).join('');
+    }
+
+    // Make removeFile globally accessible
+    window.removeFile = async (index) => {
+        if (isUploading) {
+            showAIError("Please wait for current upload to complete.");
+            return;
+        }
+        
+        if (index < 0 || index >= state.files.length) return;
+        
+        const removedFile = state.files[index];
+        state.files.splice(index, 1);
+        
+        if (state.files.length === 0) {
+            state.sessionId = null;
+            sessionStorage.removeItem('exam_session_id');
+            window._lastSessionId = null;
+            renderFileList(state.files, 'done');
+            showAIMessage("All files removed.");
+            return;
+        }
+        
+        renderFileList(state.files, 'uploading');
+        isUploading = true;
+        
+        try {
+            const data = await uploadFilesApi(state.files);
+            state.sessionId = data.session_id;
+            window._lastSessionId = data.session_id;
+            sessionStorage.setItem('exam_session_id', data.session_id);
+            renderFileList(state.files, 'done');
+            showAIMessage(`✅ Updated: ${data.files.length} files remain.`);
+        } catch (err) {
+            console.error('Update error:', err);
+            showAIError(`Failed to update file list: ${err.message}`);
+            // Restore the file
+            state.files.splice(index, 0, removedFile);
+            renderFileList(state.files, 'done');
+        } finally {
+            isUploading = false;
+        }
+    };
+
+    // File upload handler
+    if (uploadTrigger && fileUpload) {
+        uploadTrigger.onclick = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            fileUpload.value = '';
+            fileUpload.click();
+        };
+        
+        fileUpload.addEventListener('change', async (e) => {
+            if (isUploading) {
+                showAIError("Upload already in progress. Please wait...");
+                fileUpload.value = '';
+                return;
+            }
+            
+            const selectedFiles = Array.from(e.target.files);
+            
+            if (selectedFiles.length === 0) {
+                fileUpload.value = '';
+                return;
+            }
+            
+            // Validate file types
+            const validExtensions = ['pdf', 'png', 'jpg', 'jpeg'];
+            const invalidFiles = selectedFiles.filter(f => {
+                const ext = f.name.split('.').pop().toLowerCase();
+                return !validExtensions.includes(ext);
+            });
+            
+            if (invalidFiles.length > 0) {
+                showAIError(`❌ Invalid file type(s): ${invalidFiles.map(f => f.name).join(', ')}. Only PDF, PNG, JPG, JPEG allowed.`);
+                fileUpload.value = '';
+                return;
+            }
+            
+            // Check file size (max 10MB)
+            const maxSize = 10 * 1024 * 1024;
+            const oversizedFiles = selectedFiles.filter(f => f.size > maxSize);
+            if (oversizedFiles.length > 0) {
+                showAIError(`❌ File(s) too large: ${oversizedFiles.map(f => f.name).join(', ')}. Max size is 10MB.`);
+                fileUpload.value = '';
+                return;
+            }
+            
+            if (state.files.length + selectedFiles.length > 5) {
+                showAIError("❌ Whoa! My brain can only handle 5 files at a time.");
+                fileUpload.value = '';
+                return;
+            }
+            
+            isUploading = true;
+            state.files = [...state.files, ...selectedFiles];
+            fileUpload.value = '';
+            renderFileList(state.files, 'uploading');
+            
+            try {
+                const data = await uploadFilesApi(state.files);
+                
+                // CRITICAL: Store session ID in multiple places
+                state.sessionId = data.session_id;
+                window._lastSessionId = data.session_id;
+                sessionStorage.setItem('exam_session_id', data.session_id);
+                
+                console.log('✅ Session ID stored:', data.session_id);
+                console.log('🔍 State after upload:', {
+                    sessionId: state.sessionId,
+                    files: state.files.length
+                });
+                
+                renderFileList(state.files, 'done');
+                showAIMessage(`✅ Successfully uploaded ${data.files.length} file(s)!`);
+                console.log('Upload success:', data);
+            } catch (err) {
+                console.error('Upload error:', err);
+                showAIError(`❌ Upload failed: ${err.message || 'Make sure backend is running.'}`);
+                // Rollback
+                state.files = state.files.filter(f => !selectedFiles.includes(f));
+                renderFileList(state.files, 'done');
+            } finally {
+                isUploading = false;
+            }
+        });
+    }
+
+    // --- Logo Upload ---
+    const logoUpload = document.getElementById('logo-upload');
+    const logoPreview = document.getElementById('logo-preview');
+    if (logoUpload) {
+        logoUpload.addEventListener('change', async (e) => {
+            if (isLogoUploading) return;
+            
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            // Validate logo file
+            const validTypes = ['image/png', 'image/jpeg', 'image/jpg'];
+            if (!validTypes.includes(file.type)) {
+                showAIError("❌ Logo must be PNG, JPG, or JPEG format.");
+                logoUpload.value = '';
+                return;
+            }
+            
+            if (file.size > 2 * 1024 * 1024) {
+                showAIError("❌ Logo file too large. Max 2MB.");
+                logoUpload.value = '';
+                return;
+            }
+
+            try {
+                isLogoUploading = true;
+                showAIMessage("⏳ Processing your logo...");
+                const data = await uploadLogo(file);
+                state.branding.logo_path = data.logo_url;
+                
+                if (logoPreview) {
+                    logoPreview.innerHTML = `<img src="${data.logo_url}" class="w-full h-full object-contain" />`;
+                    logoPreview.classList.remove('border-dashed');
+                }
+                renderPreview(state);
+                showAIMessage("✅ Logo updated! Looks professional.");
+            } catch (err) {
+                console.error('Logo upload error:', err);
+                showAIError(`❌ Logo upload failed: ${err.message || 'Please try again.'}`);
+            } finally {
+                isLogoUploading = false;
+                logoUpload.value = '';
             }
         });
     }
@@ -241,7 +530,6 @@ document.addEventListener('DOMContentLoaded', () => {
             const menu = trigger.nextElementSibling;
             if (!menu) return;
             const isHidden = menu.classList.contains('hidden');
-            // Close all first
             document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
             if (isHidden) {
                 menu.classList.remove('hidden');
@@ -250,7 +538,6 @@ document.addEventListener('DOMContentLoaded', () => {
         };
     });
 
-    // Close dropdowns on global click
     document.addEventListener('click', () => {
         document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
     });
@@ -258,82 +545,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const addQuestionBtn = document.getElementById('add-custom-q-btn-preview');
     if (addQuestionBtn) {
         addQuestionBtn.addEventListener('click', () => {
-            document.getElementById('custom-q-modal').style.display = 'flex';
+            const modal = document.getElementById('custom-q-modal');
+            if (modal) modal.style.display = 'flex';
         });
     }
 
-
     // --- Export Functions ---
-    window.generateQuestionPaper = async (format) => {
-        if (!state.sessionId || state.questions.length === 0) return;
-        showAIMessage(`Preparing ${format.toUpperCase()} Question Paper...`);
-        
-        const total = (state.counts.mcq * state.marks.mcq) + (state.counts.short * state.marks.short) + (state.counts.long * state.marks.long);
-        const passing = Math.ceil((total * state.passingPercent) / 100);
-
-        try {
-            const response = await exportExamApi({
-                session_id: state.sessionId,
-                format: format,
-                questions: state.questions,
-                branding: state.branding,
-                student_info: state.student_info,
-                is_answer_key: false,
-                include_answers: false,
-                subject: promptInput.value || 'General',
-                topic: 'Assessment',
-                exam_title: state.branding.exam_title,
-                time_limit: state.timeLimit,
-                total_marks: total,
-                passing_marks: passing,
-                passing_percentage: state.passingPercent,
-                mcq_marks: state.marks.mcq,
-                short_marks: state.marks.short,
-                long_marks: state.marks.long,
-                prog_marks: state.marks.prog
-            });
-            const blob = await response.blob();
-            downloadFile(blob, `Question_Paper_${state.sessionId}.${format}`);
-        } catch (err) {
-            showAIError("Export failed: " + err.message);
-        }
-    };
-
-    window.generateAnswerKey = async (format) => {
-        if (!state.sessionId || state.questions.length === 0) return;
-        showAIMessage(`Preparing ${format.toUpperCase()} Answer Key...`);
-        
-        const total = (state.counts.mcq * state.marks.mcq) + (state.counts.short * state.marks.short) + (state.counts.long * state.marks.long);
-        const passing = Math.ceil((total * state.passingPercent) / 100);
-
-        try {
-            const response = await exportExamApi({
-                session_id: state.sessionId,
-                format: format,
-                questions: state.questions,
-                branding: state.branding,
-                student_info: state.student_info,
-                is_answer_key: true,
-                include_answers: true,
-                subject: promptInput.value || 'General',
-                topic: 'Answer Key',
-                exam_title: state.branding.exam_title,
-                time_limit: state.timeLimit,
-                total_marks: total,
-                passing_marks: passing,
-                passing_percentage: state.passingPercent,
-                mcq_marks: state.marks.mcq,
-                short_marks: state.marks.short,
-                long_marks: state.marks.long,
-                prog_marks: state.marks.prog
-            });
-            const blob = await response.blob();
-            downloadFile(blob, `Answer_Key_${state.sessionId}.${format}`);
-        } catch (err) {
-            showAIError("Export failed: " + err.message);
-        }
-    };
-
     function downloadFile(blob, filename) {
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -341,235 +558,31 @@ document.addEventListener('DOMContentLoaded', () => {
         a.download = filename;
         document.body.appendChild(a);
         a.click();
-        window.URL.revokeObjectURL(url);
-    }
-
-    const brandingToggle = document.getElementById('branding-toggle');
-    const brandingOptions = document.getElementById('branding-options');
-    if (brandingToggle && brandingOptions) {
-        brandingToggle.addEventListener('change', (e) => {
-            state.branding.enabled = e.target.checked;
-            brandingOptions.classList.toggle('hidden', !e.target.checked);
-            renderPreview(state);
-        });
-    }
-
-    const watermarkToggle = document.getElementById('watermark-toggle');
-    const watermarkOptions = document.getElementById('watermark-options');
-    const watermarkText = document.getElementById('watermark-text');
-    if (watermarkToggle && watermarkOptions) {
-        watermarkToggle.addEventListener('change', (e) => {
-            state.branding.enable_watermark = e.target.checked;
-            watermarkOptions.classList.toggle('hidden', !e.target.checked);
-            renderPreview(state);
-        });
-    }
-    if (watermarkText) watermarkText.addEventListener('input', (e) => { state.branding.watermark_text = e.target.value; renderPreview(state); });
-
-    const studentInfoToggle = document.getElementById('student-info-toggle');
-    const studentInfoOptions = document.getElementById('student-info-options');
-    if (studentInfoToggle && studentInfoOptions) {
-        studentInfoToggle.addEventListener('change', (e) => {
-            state.student_info.enabled = e.target.checked;
-            studentInfoOptions.classList.toggle('hidden', !e.target.checked);
-            renderPreview(state);
-        });
-    }
-
-    // --- File Handling ---
-    if (uploadTrigger && fileUpload) {
-        uploadTrigger.onclick = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            fileUpload.click();
-        };
-        fileUpload.addEventListener('change', async (e) => {
-            const selectedFiles = Array.from(e.target.files);
-            if (state.files.length + selectedFiles.length > 5) {
-                showAIError("Whoa! My brain can only handle 5 files at a time.");
-                fileUpload.value = '';
-                return;
-            }
-            state.files = [...state.files, ...selectedFiles];
-            fileUpload.value = '';
-            renderFileList(state.files, 'uploading');
-            try {
-                const data = await uploadFilesApi(state.files);
-                state.sessionId = data.session_id;
-                renderFileList(state.files, 'done');
-            } catch (err) {
-                showAIError("Upload failed. Make sure backend is running.");
-            }
-        });
-    }
-
-    window.removeFile = async (index) => {
-        state.files.splice(index, 1);
-        if (state.files.length === 0) {
-            state.sessionId = null;
-            renderFileList(state.files, 'done');
-        } else {
-            renderFileList(state.files, 'uploading');
-            try {
-                const data = await uploadFilesApi(state.files);
-                state.sessionId = data.session_id;
-                renderFileList(state.files, 'done');
-            } catch (err) {
-                showAIError("Update failed.");
-            }
-        }
-    };
-
-    // --- Logo Upload ---
-    const logoUpload = document.getElementById('logo-upload');
-    const logoPreview = document.getElementById('logo-preview');
-    if (logoUpload) {
-        logoUpload.addEventListener('change', async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            try {
-                showAIMessage("Processing your logo...");
-                const data = await uploadLogo(file);
-                state.branding.logo_path = data.logo_url;
-                
-                if (logoPreview) {
-                    logoPreview.innerHTML = `<img src="${data.logo_url}" class="w-full h-full object-contain" />`;
-                    logoPreview.classList.remove('border-dashed');
-                }
-                renderPreview(state);
-                showAIMessage("Logo updated! Looks professional.");
-            } catch (err) {
-                showAIError("Logo upload failed.");
-            }
-        });
-    }
-
-    // --- Generation Logic ---
-    window.triggerGeneration = async () => {
-        if (!state.sessionId) {
-            showAIError("Please attach at least one file first!");
-            return;
-        }
-        
-        // Disable the navbar generate button to prevent double clicks
-        navButtons.generate.classList.add('opacity-50', 'pointer-events-none');
-        
-        const loadingContainer = document.getElementById('loading-container');
-        if (loadingContainer) loadingContainer.classList.remove('hidden');
-
-        state.isGenerating = true;
-        window.startThinking();
-        try {
-            const dynamicSections = [];
-            if (state.counts.mcq > 0) dynamicSections.push({ type: 'mcq', count: state.counts.mcq, marks: state.marks.mcq, description: 'Multiple Choice' });
-            if (state.counts.short > 0) dynamicSections.push({ type: 'short', count: state.counts.short, marks: state.marks.short, description: 'Short Answer' });
-            if (state.counts.long > 0) dynamicSections.push({ type: 'long', count: state.counts.long, marks: state.marks.long, description: 'Long Answer' });
-
-            const data = await generateExamApi({
-                session_id: state.sessionId,
-                difficulty: document.getElementById('difficulty').value,
-                sections: dynamicSections,
-                time_limit: state.timeLimit,
-                passing_percentage: state.passingPercent,
-                exam_title: state.branding.exam_title,
-                branding: state.branding,
-                topic: promptInput.value,
-                student_info: state.student_info
-            });
-            state.questions = data.questions || [];
-            state.subject = data.subject || null; // Store AI-inferred subject
-            if (state.questions.length === 0) {
-                showAIError("The AI didn't return any questions.");
-            } else {
-                showAIMessage(`Subject detected: ${state.subject || 'General'}`);
-                renderPreview(state);
-                openPreview();
-                document.getElementById('post-gen-actions')?.classList.remove('hidden');
-            }
-        } catch (err) {
-            showAIError(err.message);
-        } finally {
-            state.isGenerating = false;
-            stopThinking();
-            navButtons.generate.classList.remove('opacity-50', 'pointer-events-none');
-        }
-    };
-
-    // --- Helper UI Functions ---
-    function openPreview() {
-        previewSection.style.display = 'flex';
         setTimeout(() => {
-            previewSection.classList.remove('hidden', 'opacity-0');
-            previewSection.classList.add('opacity-100');
-            document.getElementById('preview-window')?.classList.replace('scale-95', 'scale-100');
-        }, 50);
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        }, 100);
     }
-
-    window.closePreview = () => {
-        const previewWindow = document.getElementById('preview-window');
-        previewWindow?.classList.replace('scale-100', 'scale-95');
-        previewSection.classList.replace('opacity-100', 'opacity-0');
-        setTimeout(() => {
-            previewSection.classList.add('hidden');
-            previewSection.style.display = 'none';
-        }, 500);
-    };
-
-    // --- Global Window Functions (for HTML onclicks) ---
-    window.deleteQuestion = (index) => {
-        const modal = document.getElementById('delete-q-modal');
-        if (!modal) {
-            // Fallback if modal not found
-            if (confirm("Delete this question from paper?")) {
-                state.questions.splice(index, 1);
-                renderPreview(state);
-                showAIMessage("Question removed.");
-            }
-            return;
-        }
-        
-        modal.style.display = 'flex';
-        const confirmBtn = document.getElementById('confirm-delete-q-btn');
-        confirmBtn.onclick = () => {
-            state.questions.splice(index, 1);
-            renderPreview(state);
-            showAIMessage("Question removed.");
-            closeDeleteQModal();
-        };
-    };
-
-    window.closeDeleteQModal = () => {
-        const modal = document.getElementById('delete-q-modal');
-        if (modal) modal.style.display = 'none';
-    };
-
-    window.editQuestion = (index) => { state.editingIndex = index; renderPreview(state); };
-    window.cancelEdit = () => { state.editingIndex = null; renderPreview(state); };
-    window.saveQuestion = (index) => {
-        state.questions[index].question = document.getElementById('edit-q-text').value;
-        state.questions[index].answer = document.getElementById('edit-q-answer').value;
-        state.editingIndex = null;
-        renderPreview(state);
-    };
-
-    window.generateQuestionPaper = (format) => performExport(format, false, state.showAnswers);
-    window.generateAnswerKey = (format) => performExport(format, true, true);
 
     async function performExport(format, isAnswerKey, includeAnswers) {
-        if (state.questions.length === 0) return;
+        if (state.questions.length === 0) {
+            showAIError("No questions to export!");
+            return;
+        }
+        
         document.querySelectorAll('.dropdown-menu').forEach(m => m.classList.add('hidden'));
-        showAIMessage(`Preparing ${format.toUpperCase()}...`);
+        showAIMessage(`⏳ Preparing ${format.toUpperCase()}...`);
 
         try {
-            const total = (state.counts.mcq * state.marks.mcq) + (state.counts.short * state.marks.short) + (state.counts.long * state.marks.long);
+            const total = (state.counts.mcq * state.marks.mcq) + 
+                         (state.counts.short * state.marks.short) + 
+                         (state.counts.long * state.marks.long);
             const passingMarks = Math.ceil((total * state.passingPercent) / 100);
             
-            // Sanitize branding to match backend BrandingInfo schema
             const sanitizedBranding = {
                 uni: state.branding.uni || "",
                 dept: state.branding.dept || "",
-                logo_path: state.branding.logo_path,
+                logo_path: state.branding.logo_path || null,
                 enable_watermark: state.branding.enable_watermark || false,
                 watermark_text: state.branding.watermark_text || "CONFIDENTIAL"
             };
@@ -579,14 +592,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
                     session_id: state.sessionId,
-                    format,
+                    format: format,
                     questions: state.questions,
                     branding: sanitizedBranding,
                     student_info: state.student_info,
                     is_answer_key: isAnswerKey,
                     include_answers: includeAnswers,
-                    subject: state.branding.dept || promptInput.value || "Assessment",
-                    topic: promptInput.value || "Assessment",
+                    subject: state.branding.dept || promptInput?.value || "Assessment",
+                    topic: promptInput?.value || "Assessment",
                     exam_title: state.branding.exam_title || "Final Examination",
                     time_limit: state.timeLimit,
                     total_marks: total,
@@ -599,24 +612,212 @@ document.addEventListener('DOMContentLoaded', () => {
             });
 
             if (!response.ok) {
-                const errData = await response.json();
-                throw new Error(errData.detail || "Export failed");
+                let errorDetail = 'Export failed';
+                try {
+                    const errData = await response.json();
+                    errorDetail = errData.detail || errorDetail;
+                } catch (e) {
+                    errorDetail = await response.text() || errorDetail;
+                }
+                throw new Error(errorDetail);
             }
             
             const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${isAnswerKey ? 'Answer_Key' : 'Exam'}_${state.sessionId.slice(0, 8)}.${format}`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            showAIMessage(isAnswerKey ? "Answer Key ready!" : "Question Paper ready!");
+            const prefix = isAnswerKey ? 'Answer_Key' : 'Exam';
+            const filename = `${prefix}_${state.sessionId?.slice(0, 8) || 'paper'}.${format}`;
+            downloadFile(blob, filename);
+            showAIMessage(`✅ ${isAnswerKey ? 'Answer Key' : 'Question Paper'} ready!`);
         } catch (err) {
             console.error("Export Error:", err);
-            showAIError("Export failed: " + err.message);
+            showAIError(`❌ Export failed: ${err.message}`);
         }
     }
+
+    window.generateQuestionPaper = (format) => performExport(format, false, state.showAnswers);
+    window.generateAnswerKey = (format) => performExport(format, true, true);
+
+    // --- Generation Logic ---
+    window.triggerGeneration = async () => {
+        // Try to get session ID from multiple sources
+        const sessionId = state.sessionId || 
+                         window._lastSessionId || 
+                         sessionStorage.getItem('exam_session_id');
+        
+        console.log('🔍 Generation triggered. Session sources:', {
+            state: state.sessionId,
+            window: window._lastSessionId,
+            storage: sessionStorage.getItem('exam_session_id'),
+            final: sessionId
+        });
+        
+        if (!sessionId) {
+            showAIError("❌ Please attach at least one file first!");
+            console.error('❌ No session ID found. Files in state:', state.files.length);
+            return;
+        }
+        
+        // Ensure state has the session ID
+        if (!state.sessionId) {
+            state.sessionId = sessionId;
+        }
+        
+        if (state.isGenerating) {
+            showAIError("⏳ Generation already in progress...");
+            return;
+        }
+        
+        if (navButtons.generate) {
+            navButtons.generate.classList.add('opacity-50', 'pointer-events-none');
+        }
+        
+        const loadingContainer = document.getElementById('loading-container');
+        if (loadingContainer) loadingContainer.classList.remove('hidden');
+
+        state.isGenerating = true;
+        window.startThinking();
+        
+        try {
+            const dynamicSections = [];
+            if (state.counts.mcq > 0) {
+                dynamicSections.push({ 
+                    type: 'mcq', 
+                    count: state.counts.mcq, 
+                    marks: state.marks.mcq, 
+                    description: 'Multiple Choice' 
+                });
+            }
+            if (state.counts.short > 0) {
+                dynamicSections.push({ 
+                    type: 'short', 
+                    count: state.counts.short, 
+                    marks: state.marks.short, 
+                    description: 'Short Answer' 
+                });
+            }
+            if (state.counts.long > 0) {
+                dynamicSections.push({ 
+                    type: 'long', 
+                    count: state.counts.long, 
+                    marks: state.marks.long, 
+                    description: 'Long Answer' 
+                });
+            }
+
+            const difficultySelect = document.getElementById('difficulty');
+            const difficulty = difficultySelect ? difficultySelect.value : 'Medium';
+
+            const data = await generateExamApi({
+                session_id: state.sessionId,
+                difficulty: difficulty,
+                sections: dynamicSections,
+                time_limit: state.timeLimit,
+                passing_percentage: state.passingPercent,
+                exam_title: state.branding.exam_title,
+                branding: state.branding,
+                topic: promptInput?.value || '',
+                student_info: state.student_info
+            });
+            
+            state.questions = data.questions || [];
+            state.subject = data.subject || null;
+            
+            if (state.questions.length === 0) {
+                showAIError("❌ The AI didn't return any questions. Please try again.");
+            } else {
+                showAIMessage(`✅ Generated ${state.questions.length} questions! Subject: ${state.subject || 'General'}`);
+                renderPreview(state);
+                openPreview();
+                const postGenActions = document.getElementById('post-gen-actions');
+                if (postGenActions) postGenActions.classList.remove('hidden');
+            }
+        } catch (err) {
+            console.error('Generation error:', err);
+            showAIError(`❌ Generation failed: ${err.message || 'Please try again.'}`);
+        } finally {
+            state.isGenerating = false;
+            stopThinking();
+            if (navButtons.generate) {
+                navButtons.generate.classList.remove('opacity-50', 'pointer-events-none');
+            }
+        }
+    };
+
+    // --- Helper UI Functions ---
+    function openPreview() {
+        if (!previewSection) return;
+        previewSection.style.display = 'flex';
+        setTimeout(() => {
+            previewSection.classList.remove('hidden', 'opacity-0');
+            previewSection.classList.add('opacity-100');
+            const previewWindow = document.getElementById('preview-window');
+            if (previewWindow) {
+                previewWindow.classList.replace('scale-95', 'scale-100');
+            }
+        }, 50);
+    }
+
+    window.closePreview = () => {
+        if (!previewSection) return;
+        const previewWindow = document.getElementById('preview-window');
+        if (previewWindow) {
+            previewWindow.classList.replace('scale-100', 'scale-95');
+        }
+        previewSection.classList.replace('opacity-100', 'opacity-0');
+        setTimeout(() => {
+            previewSection.classList.add('hidden');
+            previewSection.style.display = 'none';
+        }, 500);
+    };
+
+    // --- Global Window Functions ---
+    window.deleteQuestion = (index) => {
+        if (index < 0 || index >= state.questions.length) return;
+        
+        const modal = document.getElementById('delete-q-modal');
+        if (!modal) {
+            if (confirm("Delete this question from paper?")) {
+                state.questions.splice(index, 1);
+                renderPreview(state);
+                showAIMessage("Question removed.");
+            }
+            return;
+        }
+        
+        modal.style.display = 'flex';
+        const confirmBtn = document.getElementById('confirm-delete-q-btn');
+        if (confirmBtn) {
+            confirmBtn.onclick = () => {
+                state.questions.splice(index, 1);
+                renderPreview(state);
+                showAIMessage("Question removed.");
+                closeDeleteQModal();
+            };
+        }
+    };
+
+    window.closeDeleteQModal = () => {
+        const modal = document.getElementById('delete-q-modal');
+        if (modal) modal.style.display = 'none';
+    };
+
+    window.editQuestion = (index) => {
+        state.editingIndex = index;
+        renderPreview(state);
+    };
+    
+    window.cancelEdit = () => {
+        state.editingIndex = null;
+        renderPreview(state);
+    };
+    
+    window.saveQuestion = (index) => {
+        const qText = document.getElementById('edit-q-text');
+        const qAnswer = document.getElementById('edit-q-answer');
+        if (qText) state.questions[index].question = qText.value;
+        if (qAnswer) state.questions[index].answer = qAnswer.value;
+        state.editingIndex = null;
+        renderPreview(state);
+    };
 
     // --- Custom Question Logic ---
     window.openCustomQModal = () => {
@@ -625,49 +826,54 @@ document.addEventListener('DOMContentLoaded', () => {
             modal.style.display = 'flex';
             modal.classList.add('clean-backdrop');
         }
-        // Reset state
-        document.getElementById('mcq-options-container').classList.add('hidden');
-        document.getElementById('custom-q-type').value = 'Short';
+        const mcqContainer = document.getElementById('mcq-options-container');
+        if (mcqContainer) mcqContainer.classList.add('hidden');
+        const qTypeSelect = document.getElementById('custom-q-type');
+        if (qTypeSelect) qTypeSelect.value = 'Short';
     };
 
     window.closeCustomQModal = () => {
-        document.getElementById('custom-q-modal').style.display = 'none';
+        const modal = document.getElementById('custom-q-modal');
+        if (modal) modal.style.display = 'none';
     };
 
     const qTypeSelect = document.getElementById('custom-q-type');
     if (qTypeSelect) {
         qTypeSelect.addEventListener('change', (e) => {
             const container = document.getElementById('mcq-options-container');
-            if (e.target.value === 'MCQ') {
-                container.classList.remove('hidden');
-            } else {
-                container.classList.add('hidden');
+            if (container) {
+                if (e.target.value === 'MCQ') {
+                    container.classList.remove('hidden');
+                } else {
+                    container.classList.add('hidden');
+                }
             }
         });
     }
 
     window.saveCustomQuestion = () => {
-        const type = document.getElementById('custom-q-type').value;
-        const text = document.getElementById('custom-q-text').value;
-        const answer = document.getElementById('custom-q-answer').value;
-        const bloom = document.getElementById('custom-q-bloom').value;
+        const type = document.getElementById('custom-q-type')?.value || 'short';
+        const text = document.getElementById('custom-q-text')?.value || '';
+        const answer = document.getElementById('custom-q-answer')?.value || '';
+        const bloom = document.getElementById('custom-q-bloom')?.value || 'Remember';
         
-        if (!text) {
-            showAIError("Question text is required!");
+        if (!text.trim()) {
+            showAIError("❌ Question text is required!");
             return;
         }
 
         const newQ = {
             type: type.toLowerCase(),
-            question: text,
-            answer: answer || "No model answer provided.",
+            question: text.trim(),
+            answer: answer.trim() || "No model answer provided.",
             bloom_level: bloom
         };
 
         if (type === 'MCQ') {
-            const opts = Array.from(document.querySelectorAll('.mcq-opt')).map(i => i.value).filter(v => v.trim() !== "");
+            const optInputs = document.querySelectorAll('.mcq-opt');
+            const opts = Array.from(optInputs).map(i => i.value.trim()).filter(v => v !== "");
             if (opts.length < 2) {
-                showAIError("MCQs need at least 2 options!");
+                showAIError("❌ MCQs need at least 2 options!");
                 return;
             }
             newQ.options = opts;
@@ -676,11 +882,13 @@ document.addEventListener('DOMContentLoaded', () => {
         state.questions.push(newQ);
         renderPreview(state);
         closeCustomQModal();
-        showAIMessage("Question added!");
+        showAIMessage("✅ Question added!");
         
         // Reset form
-        document.getElementById('custom-q-text').value = '';
-        document.getElementById('custom-q-answer').value = '';
+        const qText = document.getElementById('custom-q-text');
+        const qAnswer = document.getElementById('custom-q-answer');
+        if (qText) qText.value = '';
+        if (qAnswer) qAnswer.value = '';
         document.querySelectorAll('.mcq-opt').forEach(i => i.value = '');
     };
 
@@ -688,19 +896,33 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadVault() {
         const vaultList = document.getElementById('vault-list');
         if (!vaultList) return;
+        
         vaultList.innerHTML = '<div class="text-center py-20 opacity-30 animate-pulse font-black uppercase tracking-[0.4em]">Syncing Library...</div>';
+        
         try {
             const exams = await fetchExams();
             console.log("Fetched Exams:", exams);
             state.currentExams = exams;
+            
             if (!exams || exams.length === 0) {
-                vaultList.innerHTML = `<div class="premium-glass p-20 rounded-[3rem] text-center border-dashed border-white/10">Library Empty</div>`;
+                vaultList.innerHTML = `<div class="premium-glass p-20 rounded-[3rem] text-center border-dashed border-white/10 text-white/40">
+                    <span class="material-symbols-outlined text-6xl block mb-4">inventory_2</span>
+                    Library Empty
+                </div>`;
                 return;
             }
-            // ... (rest as updated above)
+            
             // Update Library Header Stats
-            document.getElementById('vault-count').textContent = exams.length;
-            document.getElementById('vault-last-sync').textContent = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', hour12: true});
+            const vaultCount = document.getElementById('vault-count');
+            const vaultLastSync = document.getElementById('vault-last-sync');
+            if (vaultCount) vaultCount.textContent = exams.length;
+            if (vaultLastSync) {
+                vaultLastSync.textContent = new Date().toLocaleTimeString([], {
+                    hour: '2-digit', 
+                    minute: '2-digit', 
+                    hour12: true
+                });
+            }
             
             vaultList.innerHTML = exams.map((exam, index) => `
                 <div class="premium-glass p-8 rounded-[3rem] border border-white/5 hover:border-primary/30 transition-all group relative overflow-hidden flex flex-col h-full">
@@ -708,7 +930,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div class="w-16 h-16 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                             <span class="material-symbols-outlined text-3xl">description</span>
                         </div>
-                        <button onclick="deleteExam('${exam.id}', '${exam.session_id}', event)" 
+                        <button onclick="deleteExam('${exam.id || ''}', '${exam.session_id || ''}', event)" 
                                 class="p-3 rounded-xl bg-white/5 hover:bg-rose-500/20 text-white/20 hover:text-rose-500 transition-all border border-transparent hover:border-rose-500/30">
                             <span class="material-symbols-outlined text-sm">delete</span>
                         </button>
@@ -722,60 +944,83 @@ document.addEventListener('DOMContentLoaded', () => {
                         
                         <div class="flex gap-4 pt-4 border-t border-white/5 text-white/30 text-[10px] font-black uppercase tracking-widest">
                             <span>${exam.questions_data?.length || 0} Questions</span>
+                            <span>•</span>
+                            <span>${new Date(exam.created_at || Date.now()).toLocaleDateString()}</span>
                         </div>
                     </div>
                     
                     <div class="mt-8 flex gap-3">
-                        <button onclick="viewExam(${index})" class="flex-grow py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white transition-all">View Paper</button>
+                        <button onclick="viewExam(${index})" class="flex-grow py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white transition-all">
+                            View Paper
+                        </button>
                     </div>
                 </div>
             `).join('');
-            updateStats(exams);
         } catch (err) {
-            vaultList.innerHTML = `Sync Error`;
+            console.error('Load vault error:', err);
+            vaultList.innerHTML = `<div class="text-center py-20 text-rose-500/60 font-black">
+                <span class="material-symbols-outlined text-6xl block mb-4">error</span>
+                Sync Error: ${err.message}
+            </div>`;
         }
     }
 
-    function updateStats(exams) {
-        const countEl = document.getElementById('vault-count');
-        const syncEl = document.getElementById('vault-last-sync');
-        if (countEl) countEl.textContent = exams.length;
-        if (syncEl) syncEl.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    }
-
     window.viewExam = (index) => {
+        if (index < 0 || index >= state.currentExams.length) return;
+        
         const exam = state.currentExams[index];
-        state.questions = exam.questions_data;
+        if (!exam) return;
+        
+        state.questions = exam.questions_data || [];
         state.sessionId = exam.session_id;
+        window._lastSessionId = exam.session_id;
+        sessionStorage.setItem('exam_session_id', exam.session_id);
         state.branding = exam.branding || state.branding;
         state.student_info = exam.student_info || state.student_info;
-        state.isFromVault = true; 
+        state.isFromVault = true;
+        state.subject = exam.subject || null;
+        
         renderPreview(state);
         openPreview();
+        showAIMessage(`📄 Loaded exam: ${exam.title || 'Untitled'}`);
     };
 
     window.deleteExam = (id, sessionId, event) => {
         if (event) event.stopPropagation();
+        
         const modal = document.getElementById('delete-confirm-modal');
+        if (!modal) return;
+        
         modal.style.display = 'flex';
         
         const confirmBtn = document.getElementById('confirm-delete-btn');
+        if (!confirmBtn) return;
+        
         confirmBtn.onclick = async () => {
             try {
                 confirmBtn.disabled = true;
                 confirmBtn.innerHTML = '<span class="animate-spin material-symbols-outlined text-sm">sync</span>';
                 
-                // Try deleting by DB ID first, then session_id fallback
                 const targetId = id || sessionId;
-                const response = await fetch(`${API_BASE}/exams/${targetId}`, { method: 'DELETE' });
-                if (!response.ok) throw new Error("Delete failed");
+                if (!targetId) {
+                    throw new Error("No exam identifier provided");
+                }
                 
-                showAIMessage("Exam deleted successfully.");
+                const response = await fetch(`${API_BASE}/exams/${targetId}`, { 
+                    method: 'DELETE' 
+                });
+                
+                if (!response.ok) {
+                    const errData = await response.json().catch(() => ({}));
+                    throw new Error(errData.detail || "Delete failed");
+                }
+                
+                showAIMessage("✅ Exam deleted successfully.");
                 closeDeleteModal();
-                loadVault();
+                await loadVault();
             } catch (err) {
                 console.error("Delete Error:", err);
-                showAIError("Could not delete exam.");
+                showAIError(`❌ Could not delete exam: ${err.message}`);
             } finally {
                 confirmBtn.disabled = false;
                 confirmBtn.textContent = "Delete";
@@ -784,22 +1029,33 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     window.closeDeleteModal = () => {
-        document.getElementById('delete-confirm-modal').style.display = 'none';
+        const modal = document.getElementById('delete-confirm-modal');
+        if (modal) modal.style.display = 'none';
     };
 
     // --- Robot & Messages ---
     function showAIMessage(msg) {
-        aiMessage.textContent = msg;
-        setTimeout(() => aiMessage.innerHTML = "I am the AI assistant!<br>Attach files and click <strong class='text-primary'>GENERATE</strong> in the navbar to start.", 4000);
+        if (!aiMessage) return;
+        aiMessage.innerHTML = msg;
+        setTimeout(() => {
+            if (aiMessage) {
+                aiMessage.innerHTML = "I am the AI assistant!<br>Attach files and click <strong class='text-primary'>GENERATE</strong> in the navbar to start.";
+            }
+        }, 5000);
     }
 
     function showAIError(msg) {
-        aiMessage.textContent = msg;
+        if (!aiMessage || !robotAvatar) return;
+        aiMessage.innerHTML = msg;
         robotAvatar.classList.add('animate-wiggle');
         setTimeout(() => {
-            aiMessage.innerHTML = "I am the AI assistant!<br>Attach files and click <strong class='text-primary'>GENERATE</strong> in the navbar to start.";
-            robotAvatar.classList.remove('animate-wiggle');
-        }, 4000);
+            if (aiMessage) {
+                aiMessage.innerHTML = "I am the AI assistant!<br>Attach files and click <strong class='text-primary'>GENERATE</strong> in the navbar to start.";
+            }
+            if (robotAvatar) {
+                robotAvatar.classList.remove('animate-wiggle');
+            }
+        }, 5000);
     }
 
     // --- AI Thinking ---
@@ -815,46 +1071,67 @@ document.addEventListener('DOMContentLoaded', () => {
             "Finalizing paper..."
         ];
         
-        document.getElementById('progress-status').textContent = msgs[0];
+        const progressStatus = document.getElementById('progress-status');
+        if (progressStatus) progressStatus.textContent = msgs[0];
+        
+        if (state.statusInterval) clearInterval(state.statusInterval);
         
         state.statusInterval = setInterval(() => {
             step++;
-            if (step < msgs.length) {
-                document.getElementById('progress-status').textContent = msgs[step];
-            } else {
-                // cycle the last few messages
-                const randomMsg = msgs[Math.floor(Math.random() * 3) + 3];
-                document.getElementById('progress-status').textContent = randomMsg;
+            const progressStatus = document.getElementById('progress-status');
+            if (progressStatus) {
+                if (step < msgs.length) {
+                    progressStatus.textContent = msgs[step];
+                } else {
+                    const randomMsg = msgs[Math.floor(Math.random() * 3) + 3];
+                    progressStatus.textContent = randomMsg;
+                }
             }
-        }, 2000); // Advanced progression
+        }, 2000);
     };
 
     function stopThinking() {
-        clearInterval(state.statusInterval);
-        document.getElementById('loading-container').classList.add('hidden');
+        if (state.statusInterval) {
+            clearInterval(state.statusInterval);
+            state.statusInterval = null;
+        }
+        const loadingContainer = document.getElementById('loading-container');
+        if (loadingContainer) loadingContainer.classList.add('hidden');
     }
 
+    // --- Live Marks Update ---
     window.updateLiveMarks = () => {
-        state.counts.mcq = parseInt(document.getElementById('mcq-count')?.value) || 0;
-        state.counts.short = parseInt(document.getElementById('short-count')?.value) || 0;
-        state.counts.long = parseInt(document.getElementById('long-count')?.value) || 0;
+        const mcqCount = document.getElementById('mcq-count');
+        const shortCount = document.getElementById('short-count');
+        const longCount = document.getElementById('long-count');
+        const mcqMarks = document.getElementById('mcq-marks');
+        const shortMarks = document.getElementById('short-marks');
+        const longMarks = document.getElementById('long-marks');
+        const passingPercent = document.getElementById('passing-percent');
+        const timeLimit = document.getElementById('time-limit');
+        
+        state.counts.mcq = parseInt(mcqCount?.value) || 0;
+        state.counts.short = parseInt(shortCount?.value) || 0;
+        state.counts.long = parseInt(longCount?.value) || 0;
 
-        state.marks.mcq = parseInt(document.getElementById('mcq-marks')?.value) || 1;
-        state.marks.short = parseInt(document.getElementById('short-marks')?.value) || 4;
-        state.marks.long = parseInt(document.getElementById('long-marks')?.value) || 10;
+        state.marks.mcq = parseInt(mcqMarks?.value) || 1;
+        state.marks.short = parseInt(shortMarks?.value) || 4;
+        state.marks.long = parseInt(longMarks?.value) || 10;
 
-        state.passingPercent = parseInt(document.getElementById('passing-percent')?.value) || 40;
-        state.timeLimit = document.getElementById('time-limit')?.value || '2 Hours';
+        state.passingPercent = parseInt(passingPercent?.value) || 40;
+        state.timeLimit = timeLimit?.value || '2 Hours';
 
         // Update Displays
-        const displays = {
-            mcq: document.getElementById('mcq-qty-display'),
-            short: document.getElementById('short-qty-display'),
-            long: document.getElementById('long-qty-display')
-        };
-        Object.entries(displays).forEach(([type, el]) => { if (el) el.textContent = state.counts[type]; });
+        const mcqDisplay = document.getElementById('mcq-qty-display');
+        const shortDisplay = document.getElementById('short-qty-display');
+        const longDisplay = document.getElementById('long-qty-display');
+        if (mcqDisplay) mcqDisplay.textContent = state.counts.mcq;
+        if (shortDisplay) shortDisplay.textContent = state.counts.short;
+        if (longDisplay) longDisplay.textContent = state.counts.long;
 
-        const total = (state.counts.mcq * state.marks.mcq) + (state.counts.short * state.marks.short) + (state.counts.long * state.marks.long);
+        const total = (state.counts.mcq * state.marks.mcq) + 
+                     (state.counts.short * state.marks.short) + 
+                     (state.counts.long * state.marks.long);
         const passing = Math.ceil((total * state.passingPercent) / 100);
 
         const totalDisplay = document.getElementById('total-marks-display');
@@ -863,26 +1140,53 @@ document.addEventListener('DOMContentLoaded', () => {
         if (passingDisplay) passingDisplay.textContent = passing;
     };
 
+    // --- Toggle Question Type ---
     window.toggleType = (type, isChecked) => {
         const countInput = document.getElementById(`${type}-count`);
         const marksInput = document.getElementById(`${type}-marks`);
         const card = document.getElementById(`card-${type}`);
         
+        if (!countInput) return;
+        
         if (!isChecked) {
             countInput.setAttribute('data-last-val', countInput.value);
             countInput.value = 0;
             countInput.disabled = true;
+            if (marksInput) marksInput.disabled = true;
             if (card) card.classList.add('opacity-40');
         } else {
             countInput.disabled = false;
-            countInput.value = countInput.getAttribute('data-last-val') || (type === 'mcq' ? 10 : type === 'short' ? 5 : type === 'long' ? 2 : 0);
+            if (marksInput) marksInput.disabled = false;
+            const defaultValue = type === 'mcq' ? 10 : type === 'short' ? 5 : 2;
+            countInput.value = countInput.getAttribute('data-last-val') || defaultValue;
             if (card) card.classList.remove('opacity-40');
         }
         window.updateLiveMarks();
     };
 
-    // Initialize UI
+    // --- Debug Helper ---
+    window.debugState = function() {
+        console.log('🔍 Current State:', {
+            sessionId: state.sessionId,
+            windowSessionId: window._lastSessionId,
+            storageSessionId: sessionStorage.getItem('exam_session_id'),
+            files: state.files.length,
+            filesList: state.files.map(f => f.name),
+            questions: state.questions.length,
+            isGenerating: state.isGenerating,
+            isFromVault: state.isFromVault
+        });
+        return state;
+    };
+
+    // --- Initialize ---
     setTimeout(() => window.updateLiveMarks(), 100);
-
-
+    
+    // Load vault if on vault page initially
+    if (document.getElementById('page-vault')?.classList.contains('active')) {
+        loadVault();
+    }
+    
+    console.log('✅ AI Exam Maker initialized successfully!');
+    console.log('🔍 Type debugState() in console to check current state.');
 });

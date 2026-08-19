@@ -4,6 +4,8 @@ from db.database import get_db
 from db import models
 from models import schemas
 from typing import List
+import logging
+
 
 router = APIRouter()
 
@@ -27,11 +29,11 @@ def get_exams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
 
 @router.delete("/exams/{session_id}")
 def delete_exam(session_id: str, db: Session = Depends(get_db)):
-    print(f"Attempting to delete exam with session_id: {session_id}")
+    logging.info(f"Attempting to delete exam with session_id: {session_id}")
     
     # Normalize ID: remove any whitespace, quotes, or accidental prefixing
     target_id = str(session_id).strip().strip('"').strip("'").strip('#')
-    print(f"DEBUG: Attempting to delete exam with normalized ID: {target_id}")
+    logging.debug(f"Attempting to delete exam with normalized ID: {target_id}")
     
     # 1. Try finding by session_id (String)
     exam = db.query(models.Exam).filter(models.Exam.session_id == target_id).first()
@@ -51,11 +53,11 @@ def delete_exam(session_id: str, db: Session = Depends(get_db)):
     if not exam:
         # Debug: Log all existing IDs to see why we can't find it
         all_exams = db.query(models.Exam).all()
-        print(f"DEBUG: IDs in DB: {[e.id for e in all_exams]}")
-        print(f"DEBUG: Sessions in DB: {[e.session_id for e in all_exams]}")
+        logging.debug(f"IDs in DB: {[e.id for e in all_exams]}")
+        logging.debug(f"Sessions in DB: {[e.session_id for e in all_exams]}")
         raise HTTPException(status_code=404, detail=f"Exam not found. Attempted ID: {target_id}")
     
     db.delete(exam)
     db.commit()
-    print(f"Exam {session_id} deleted successfully.")
+    logging.info(f"Exam {session_id} deleted successfully.")
     return {"message": "Exam deleted"}
