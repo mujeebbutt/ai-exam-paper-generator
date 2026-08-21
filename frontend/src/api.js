@@ -1,6 +1,15 @@
 if (typeof API_BASE === 'undefined') {
-    const host = window.location.hostname && window.location.hostname !== '' ? window.location.hostname : '127.0.0.1';
-    var API_BASE = `http://${host}:8000/api`;
+    // Production (ustadexam.com): frontend and backend are served from the same origin, with
+    // /api reverse-proxied to the backend — a same-origin relative path is correct regardless of
+    // protocol/domain. Local dev serves the frontend and backend on different ports
+    // (`python -m http.server 5500` + `uvicorn` on :8000), so that case still needs an explicit
+    // cross-port URL. This used to be hardcoded to `http://${hostname}:8000` unconditionally,
+    // which — on the real domain — sent every API call over plain HTTP to the wrong port and
+    // got blocked as mixed content by the browser.
+    const isLocalDev = ['localhost', '127.0.0.1', ''].includes(window.location.hostname);
+    var API_BASE = isLocalDev
+        ? `http://${window.location.hostname || '127.0.0.1'}:8000/api`
+        : `${window.location.origin}/api`;
 }
 
 async function fetchExams() {

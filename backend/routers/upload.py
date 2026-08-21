@@ -1,4 +1,4 @@
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, HTTPException, Request
 import os
 import shutil
 import uuid
@@ -71,7 +71,7 @@ async def upload_files(
     }
 
 @router.post("/upload-logo")
-async def upload_logo(file: UploadFile = File(...)):
+async def upload_logo(request: Request, file: UploadFile = File(...)):
     """
     Upload a logo for branding.
     """
@@ -87,6 +87,10 @@ async def upload_logo(file: UploadFile = File(...)):
     with open(file_path, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
+    # Was hardcoded to http://127.0.0.1:8000 — worked only because local dev happens to run the
+    # backend there. Derived from the actual incoming request instead, so this resolves correctly
+    # in production too (behind Railway's proxy) without hardcoding a domain either way.
+    base_url = str(request.base_url).rstrip("/")
     return {
-        "logo_url": f"http://127.0.0.1:8000/static/logos/{logo_filename}"
+        "logo_url": f"{base_url}/static/logos/{logo_filename}"
     }

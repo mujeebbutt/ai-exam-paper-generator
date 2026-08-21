@@ -13,10 +13,20 @@ Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="UstadExam", version="1.0.0")
 
-# Configure CORS for Vanilla JS frontend
+# Configure CORS for the frontend. In production (ustadexam.com, frontend+backend same origin
+# behind Railway's proxy) same-origin fetches aren't subject to CORS at all, so this mainly
+# matters for local dev (frontend on :5500, backend on :8000 — different origins) and any other
+# legitimate cross-origin caller. Set ALLOWED_ORIGINS in the environment (comma-separated) to
+# override the local-dev default — e.g. ALLOWED_ORIGINS=https://ustadexam.com,https://www.ustadexam.com
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("ALLOWED_ORIGINS", "http://localhost:5500,http://127.0.0.1:5500").split(",")
+    if origin.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"], # In production, specify the exact origin
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -36,7 +46,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 async def root():
-    return {"message": "UstadExam API is running locally via FastAPI"}
+    return {"message": "UstadExam API is running in production (Railway)"}
 
 if __name__ == "__main__":
     import uvicorn
