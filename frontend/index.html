@@ -4,28 +4,40 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>AI Exam Maker - Create Exams Fast</title>
+    <title>UstadExam - AI-Powered Exam Generation</title>
+    <meta name="description" content="UstadExam generates, grades, and tracks progress on AI-powered exams from your own study material.">
+    <meta property="og:title" content="UstadExam">
+    <meta property="og:description" content="AI-powered exam generation, grading, and progress tracking.">
+    <meta property="og:type" content="website">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap"
         rel="stylesheet" />
     <link
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
         rel="stylesheet" />
+    <!-- Caveat — used sparingly, just for the founder card's signature-style flourish -->
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&amp;display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" href="favicon.png">
     <!-- MathJax for LaTeX Support -->
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    <!-- Chart.js for the Student Dashboard's score-over-time chart -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
     <script id="tailwind-config">
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     "colors": {
-                        "primary-container": "#e11d48",
+                        // Single source of truth for the brand accent — every text-primary/
+                        // bg-primary/border-primary/shadow-primary/bg-primary-container
+                        // utility sitewide (nav, hero, badges, borders, icons, pricing) reads
+                        // from these two values.
+                        "primary-container": "#c9184a",
                         "background": "#050505",
                         "surface": "#121212",
                         "on-surface": "#ffffff",
                         "on-surface-variant": "#a1a1aa",
-                        "primary": "#fb7185",
+                        "primary": "#ff6b8a",
                     }
                 }
             }
@@ -36,7 +48,7 @@
 
 <body class="font-sans min-h-screen flex flex-col selection:bg-primary-container selection:text-white">
     <div class="mesh-bg"></div>
-    <div class="gradient-sphere" style="top: 10%; left: 10%; width: 500px; height: 500px; background: #e11d48;"></div>
+    <div class="gradient-sphere" style="top: 10%; left: 10%; width: 500px; height: 500px; background: #c9184a;"></div>
     <div class="gradient-sphere" style="bottom: 10%; right: 10%; width: 600px; height: 600px; background: #9f1239;">
     </div>
     <div class="blob" style="top: -200px; left: -200px; animation-duration: 40s;"></div>
@@ -62,13 +74,13 @@
         style="--top: 95%; --left: 15%; --duration: 60s; --x: 200px; --y: -100px; font-size: 200px; opacity: 0.03;">science</span>
 
     <main class="flex-grow w-full relative">
-        <div id="page-generate" class="page-content active pt-20">
+        <div id="page-generate" class="page-content active pt-8">
             <div class="flex-grow overflow-y-auto custom-scrollbar pb-[300px]">
                 <div class="max-w-[1800px] mx-auto px-6 md:px-16 space-y-10">
                     <!-- Hero Section -->
                     <div id="hero-section" class="text-center space-y-3 animate-fadeIn py-4">
                         <h1 class="text-5xl md:text-7xl font-black tracking-tighter text-white leading-none">
-                            AI <span class="bg-clip-text text-transparent bg-gradient-to-r from-primary to-rose-300">Exam Lab</span>
+                            USTAD<span class="bg-clip-text text-transparent bg-gradient-to-r from-primary to-rose-300">EXAM</span>
                         </h1>
                         <p class="text-white/20 max-w-2xl mx-auto text-[10px] font-black uppercase tracking-[0.4em]">
                             Create professional exams from your files easily
@@ -295,36 +307,43 @@
                 </div>
             </div>
 
-            <!-- Exam Controls (Floating Bottom Bar) -->
-            <div class="fixed bottom-8 left-1/2 -translate-x-1/2 w-[95%] max-w-[1800px] z-[150] animate-slideUp">
-                <div class="premium-glass rounded-[3rem] p-8 border border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.8)]">
-                    <div class="flex flex-col md:flex-row items-center justify-between gap-8 px-4">
+            <!-- Exam Controls (Floating Bottom Bar) — sits above #main-nav, which is now also
+                 bottom-fixed (was top-fixed); bottom-28 instead of bottom-8 keeps the two clear
+                 of each other instead of stacking on top of one another. Row layout kept even on
+                 mobile (was flex-col below md:, stacking Max Marks/Passing Marks/loading-bar into
+                 a ~230px-tall bar that ate most of a phone's remaining vertical space) — Max
+                 Marks and Passing Marks are just a label+number each, they fit side by side fine
+                 down to a phone width, and the loading bar/post-gen button wrap onto their own
+                 line via flex-wrap instead of forcing the whole bar to stack. -->
+            <div class="fixed bottom-28 left-1/2 -translate-x-1/2 w-[95%] max-w-[1800px] z-[150] animate-slideUp">
+                <div class="premium-glass rounded-[3rem] p-4 md:p-8 border border-white/10 shadow-[0_30px_100px_rgba(0,0,0,0.8)]">
+                    <div class="flex flex-wrap items-center justify-between gap-4 md:gap-8 px-2 md:px-4">
                         <div class="flex gap-16">
                             <div class="flex flex-col">
                                 <span class="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Max Marks</span>
-                                <span id="total-marks-display" class="text-5xl font-black text-white leading-tight">0</span>
+                                <span id="total-marks-display" class="text-3xl md:text-5xl font-black text-white leading-tight">0</span>
                             </div>
                         </div>
 
-                        <div class="flex-grow max-w-xl px-8 hidden" id="loading-container">
+                        <div class="flex-grow max-w-xl px-2 md:px-8 hidden basis-full md:basis-auto order-3 md:order-none" id="loading-container">
                             <div class="flex flex-col gap-3 w-full">
                                 <div class="flex justify-between items-center text-xs font-bold text-white uppercase tracking-widest">
                                     <span id="progress-status">Initializing AI Engine...</span>
                                     <span class="text-primary animate-pulse material-symbols-outlined text-sm">memory</span>
                                 </div>
                                 <div class="h-1.5 w-full bg-white/5 rounded-full overflow-hidden relative border border-white/10">
-                                    <div class="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-rose-400 rounded-full w-1/3 animate-shimmer shadow-[0_0_15px_rgba(225,29,72,0.6)]"></div>
+                                    <div class="absolute top-0 left-0 h-full bg-gradient-to-r from-primary to-rose-400 rounded-full w-1/3 animate-shimmer shadow-[0_0_15px_rgba(201, 24, 74,0.6)]"></div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="flex gap-8 items-center">
+                        <div class="flex gap-4 md:gap-8 items-center">
                             <div id="post-gen-actions" class="hidden flex gap-4 animate-fadeIn">
-                                <button id="create-new-btn-main" class="px-8 py-5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white transition-all">Start New</button>
+                                <button id="create-new-btn-main" class="px-5 md:px-8 py-3 md:py-5 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white transition-all">Start New</button>
                             </div>
                             <div class="flex flex-col text-right">
                                 <span class="text-[10px] font-black uppercase tracking-[0.3em] text-white/30">Passing Marks</span>
-                                <span id="passing-marks-display" class="text-5xl font-black text-primary leading-tight">0</span>
+                                <span id="passing-marks-display" class="text-3xl md:text-5xl font-black text-primary leading-tight">0</span>
                             </div>
                         </div>
                     </div>
@@ -333,21 +352,26 @@
         </div>
 
         <!-- PAGE: LIBRARY -->
-        <div id="page-vault" class="page-content pt-20">
-            <div class="max-w-[1800px] mx-auto w-full px-6 md:px-16 mb-12 flex-shrink-0">
-                <div class="flex flex-col md:flex-row md:items-end justify-between gap-10 mb-16">
-                    <div class="space-y-4">
+        <div id="page-vault" class="page-content pt-8">
+            <div class="max-w-[1800px] mx-auto w-full px-6 md:px-16 mb-8 md:mb-12 flex-shrink-0">
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 md:gap-10 mb-8 md:mb-16">
+                    <div class="space-y-3 md:space-y-4">
                         <span class="px-6 py-2 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black uppercase tracking-[0.4em] text-primary">Examination Archive</span>
-                        <h2 class="text-7xl md:text-9xl font-black tracking-tighter text-white leading-none">THE <span class="text-primary">VAULT</span></h2>
+                        <h2 class="text-4xl sm:text-5xl md:text-7xl lg:text-9xl font-black tracking-tighter text-white leading-none">THE <span class="text-primary">VAULT</span></h2>
                     </div>
-                    <div id="library-stats" class="flex gap-8">
-                        <div class="premium-glass px-10 py-6 rounded-[2.5rem] border border-white/5 flex flex-col items-center group hover:border-primary/30 transition-all">
-                            <span id="vault-count" class="text-5xl font-black text-primary group-hover:scale-110 transition-transform">0</span>
-                            <span class="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mt-2">Stored Papers</span>
+                    <!-- Side by side even on mobile (was flex-col-by-default via #library-stats'
+                         mobile media-query rule, stacking two already-large stat cards into a
+                         block that ate roughly half the viewport height) — these are just two
+                         short label+number pairs, same fix as the Generate page's Exam Controls
+                         bar. Padding/text sized down on mobile, back to full size at md:. -->
+                    <div id="library-stats" class="flex flex-row gap-4 md:gap-8">
+                        <div class="premium-glass px-6 py-4 md:px-10 md:py-6 rounded-[2rem] md:rounded-[2.5rem] border border-white/5 flex flex-col items-center group hover:border-primary/30 transition-all">
+                            <span id="vault-count" class="text-3xl md:text-5xl font-black text-primary group-hover:scale-110 transition-transform">0</span>
+                            <span class="text-[9px] md:text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mt-1 md:mt-2 whitespace-nowrap">Stored Papers</span>
                         </div>
-                        <div class="premium-glass px-10 py-6 rounded-[2.5rem] border border-white/5 flex flex-col items-center group hover:border-primary/30 transition-all">
-                            <span id="vault-last-sync" class="text-4xl font-black text-white group-hover:scale-110 transition-transform">--:--</span>
-                            <span class="text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mt-2">Last Access</span>
+                        <div class="premium-glass px-6 py-4 md:px-10 md:py-6 rounded-[2rem] md:rounded-[2.5rem] border border-white/5 flex flex-col items-center group hover:border-primary/30 transition-all">
+                            <span id="vault-last-sync" class="text-2xl md:text-4xl font-black text-white group-hover:scale-110 transition-transform">--:--</span>
+                            <span class="text-[9px] md:text-[10px] font-black uppercase text-white/30 tracking-[0.2em] mt-1 md:mt-2 whitespace-nowrap">Last Access</span>
                         </div>
                     </div>
                 </div>
@@ -358,69 +382,1213 @@
                 <div id="vault-list" class="max-w-[1800px] mx-auto w-full grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8 pt-10">
                     <!-- Exams will be loaded here -->
                 </div>
+                <!-- "My Learning Progress" — migrated here from Profile (Phase 5 continuation):
+                     Profile is account-only now; Library owns papers + performance together.
+                     Rendered by profile.js's renderLibraryProgress(). -->
+                <div id="library-progress" class="max-w-[1800px] mx-auto w-full space-y-10 pt-16"></div>
             </div>
         </div>
 
-        <!-- PAGE: ABOUT -->
-        <div id="page-about" class="page-content pt-20 pb-40">
-            <div class="max-w-[1400px] mx-auto w-full h-full flex flex-col items-center justify-center gap-12 px-8">
-                <div class="text-center space-y-6 animate-fadeIn">
-                    <div class="space-y-2">
-                        <span class="px-6 py-2 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black uppercase tracking-[0.4em] text-primary">Academic Innovation</span>
-                        <h2 class="text-7xl md:text-9xl font-black text-white tracking-tighter leading-none uppercase">The AI Maker</h2>
+        <!-- PAGE: PROFILE (account only — requires auth, see auth.js route guard. Generated
+             papers and progress live in Library now, not here.) -->
+        <div id="page-profile" class="page-content pt-8">
+            <!-- .page-content is height:100vh + overflow:hidden (see style.css), so any page
+                 whose content can exceed one viewport needs its own scroll wrapper — this one
+                 was missing it (fine on a tall desktop window, but real content clipped
+                 unreachable below a short mobile viewport). Matches the pattern every other
+                 page (Generate/Vault/Integrity/Legal) already uses. -->
+            <div class="flex-grow overflow-y-auto custom-scrollbar pb-[300px]">
+            <div class="max-w-[900px] mx-auto w-full px-6 md:px-16 mb-10 flex-shrink-0 space-y-8">
+                <div class="premium-glass rounded-[2.5rem] p-8 border border-white/5 flex flex-col md:flex-row items-center gap-6">
+                    <div id="profile-avatar" class="w-24 h-24 rounded-full bg-primary/20 border-2 border-primary/30 flex items-center justify-center text-4xl font-black text-primary shrink-0">?</div>
+                    <div class="flex-grow text-center md:text-left">
+                        <h2 id="profile-name" class="text-3xl font-black text-white"></h2>
+                        <p id="profile-email" class="text-white/40 text-sm font-bold"></p>
+                        <span id="profile-role-badge" class="inline-block mt-2 px-4 py-1.5 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black uppercase tracking-widest text-primary"></span>
                     </div>
-                    
-                    <!-- Developers Moved Up -->
-                    <div class="flex flex-col md:flex-row gap-12 items-center justify-center pt-6 animate-fadeIn" style="animation-delay: 0.1s">
-                        <div class="text-center space-y-1">
-                            <span class="text-[9px] font-black uppercase tracking-[0.4em] text-white/20">Lead Developer</span>
-                            <h4 class="text-3xl font-black text-white">Mujeeb Butt</h4>
+                    <button onclick="window.logout()"
+                        class="px-6 py-3 rounded-xl bg-white/5 hover:bg-red-500/20 border border-white/10 hover:border-red-500/30 text-white/60 hover:text-red-400 font-black uppercase text-[10px] tracking-widest transition-all flex items-center gap-2 shrink-0">
+                        <span class="material-symbols-outlined text-sm">logout</span> Logout
+                    </button>
+                </div>
+
+                <div class="premium-glass rounded-[2.5rem] p-8 border border-white/5 space-y-6">
+                    <h3 class="text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Account Details</h3>
+                    <div>
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Full Name</label>
+                        <input id="profile-edit-name" type="text" class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white font-bold focus:border-primary/50 focus:outline-none transition-all" placeholder="Your name">
+                    </div>
+                    <div id="profile-edit-grade-wrap" class="hidden">
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Grade</label>
+                        <input id="profile-edit-grade" type="text" class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white font-bold focus:border-primary/50 focus:outline-none transition-all" placeholder="e.g. Grade 11">
+                    </div>
+                    <div id="profile-edit-subject-wrap" class="hidden">
+                        <label class="block text-[10px] font-black uppercase tracking-widest text-white/30 mb-2">Subject</label>
+                        <input id="profile-edit-subject" type="text" class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-white font-bold focus:border-primary/50 focus:outline-none transition-all" placeholder="e.g. Physics">
+                    </div>
+                    <div class="flex items-center gap-4 pt-2">
+                        <button id="profile-save-btn" onclick="window.updateProfile()" class="px-8 py-4 rounded-2xl bg-primary hover:bg-primary/80 text-white font-black uppercase text-[10px] tracking-widest transition-all">Save Changes</button>
+                        <span id="profile-save-status" class="hidden text-sm font-bold"></span>
+                    </div>
+                </div>
+            </div>
+            </div>
+        </div>
+
+        <!-- PAGE: INTEGRITY LOG (teacher/admin — not part of the student-facing flow) -->
+        <div id="page-integrity" class="page-content pt-8">
+            <div class="max-w-[1800px] mx-auto w-full px-6 md:px-16 mb-10 flex-shrink-0 space-y-8">
+                <div class="flex flex-col md:flex-row md:items-end justify-between gap-10">
+                    <div class="space-y-4">
+                        <span class="px-6 py-2 rounded-full bg-primary/10 border border-primary/20 text-[10px] font-black uppercase tracking-[0.4em] text-primary">Teacher / Admin</span>
+                        <h2 class="text-4xl sm:text-5xl md:text-7xl lg:text-9xl font-black tracking-tighter text-white leading-none">INTEGRITY <span class="text-primary">LOG</span></h2>
+                        <p class="text-white/30 text-xs font-bold max-w-xl">Informational only — tab-switch counts, submission speed, and question-time outliers are signals to review manually, not automatic penalties.</p>
+                    </div>
+                    <div class="premium-glass rounded-[2rem] p-4 border border-white/5 flex items-center gap-3 w-full md:w-auto md:min-w-[380px]">
+                        <span class="material-symbols-outlined text-white/30 pl-2">description</span>
+                        <select id="integrity-exam-select" onchange="window.loadIntegrityLog()"
+                            class="flex-grow bg-transparent border-none outline-none text-white font-bold text-sm cursor-pointer">
+                            <option value="" class="bg-surface">Select an exam...</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex-grow overflow-y-auto custom-scrollbar px-6 md:px-16 pb-[300px] library-mask">
+                <div id="integrity-content" class="max-w-[1800px] mx-auto w-full space-y-4 pt-4">
+                    <div class="premium-glass p-20 rounded-[3rem] text-center border-dashed border-white/10 text-white/40">
+                        <span class="material-symbols-outlined text-6xl block mb-4">verified_user</span>
+                        Select an exam above to review integrity signals for its attempts.
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: LANDING (public root — shown to logged-out visitors) -->
+        <div id="page-landing" class="page-content">
+          <!-- .page-content is a fixed 100vh/overflow-hidden shell (site-wide, so the floating
+               nav never gets pushed off-screen) — every other page handles that by putting its
+               real content in one flex-grow/overflow-y-auto child. Landing didn't have that
+               wrapper before, which silently made everything past the first viewport
+               (Vision/How-It-Works/Features/Pricing/Footer) unreachable by normal scrolling.
+               Fixed here by adopting the same pattern #page-vault/#page-profile already use. -->
+          <div class="flex-grow overflow-y-auto custom-scrollbar pt-20 pb-10">
+
+            <!-- Hero — two-column product-led composition. Full-bleed (outside the max-w-[1800px]
+                 content wrapper below) so the atmospheric glow/grid can span the whole viewport
+                 width without fighting the page's normal content gutter. -->
+            <section id="landing-hero" class="relative min-h-[calc(100vh-5rem)] flex items-center overflow-hidden px-6 py-10">
+                <div class="hero-glow" aria-hidden="true"></div>
+                <div class="hero-grid" aria-hidden="true"></div>
+                <div class="hero-decor-card hero-decor-card--1 hidden md:block" aria-hidden="true"></div>
+                <div class="hero-decor-card hero-decor-card--2 hidden lg:block" aria-hidden="true"></div>
+                <div class="hero-decor-card hero-decor-card--3 hidden md:block" aria-hidden="true"></div>
+                <div class="hero-decor-card hero-decor-card--4 hidden lg:block" aria-hidden="true"></div>
+                <div class="hero-particle hero-particle--1 hidden md:block" aria-hidden="true"></div>
+                <div class="hero-particle hero-particle--2 hidden lg:block" aria-hidden="true"></div>
+                <div class="hero-particle hero-particle--3 hidden md:block" aria-hidden="true"></div>
+                <div class="hero-particle hero-particle--4 hidden lg:block" aria-hidden="true"></div>
+
+                <div class="relative z-10 max-w-[1400px] mx-auto w-full grid grid-cols-1 lg:grid-cols-2 gap-16 lg:gap-12 items-center">
+
+                    <!-- Left: marketing message -->
+                    <div class="flex flex-col items-center lg:items-start text-center lg:text-left gap-6 animate-fadeIn">
+                        <span class="text-[11px] md:text-xs font-black uppercase tracking-[0.5em] text-primary/90">AI-Powered Exam Platform</span>
+
+                        <div class="relative">
+                            <!-- Trust card, anchored to the corner of the headline's leading "C"
+                                 (desktop only — hero text is centered on mobile, so there's no
+                                 stable "corner" to anchor to there). Tilted like a pinned sticker:
+                                 outer div holds the static rotation, inner keeps its own
+                                 entrance+float animation (position overridden to static so it
+                                 doesn't fight the outer's absolute placement) — nested transforms
+                                 compose visually without the two fighting over one `transform`.
+                                 Pulled in from -10/-10 to -6/-6 so it no longer cuts into the
+                                 "AI-Powered Exam Platform" eyebrow above it; uses the same
+                                 anchored glow-border as the mockup's stat cards, plus a small icon
+                                 and a divider for a bit more polish than plain text-on-a-box. -->
+                            <div class="absolute hidden lg:block" style="top: -109px; left: -76px; transform: rotate(-7deg);">
+                                <div class="hero-float-card hero-float-card--anchored premium-glass rounded-2xl px-6 py-4 text-left" style="--card-delay:0.3s; position: static;">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-7 h-7 rounded-lg bg-primary/15 flex items-center justify-center text-primary shrink-0">
+                                            <span class="material-symbols-outlined text-base">groups</span>
+                                        </span>
+                                        <span class="text-[9px] font-black uppercase tracking-widest text-white/40">Trusted By</span>
+                                    </div>
+                                    <div class="h-px bg-white/10 my-2"></div>
+                                    <span class="block text-3xl font-black text-primary leading-none">587+</span>
+                                    <span class="block text-[9px] font-black uppercase tracking-widest text-white/40 mt-1">Students &amp; Teachers</span>
+                                </div>
+                            </div>
+                            <h1 class="hero-headline text-6xl sm:text-7xl lg:text-[4rem] xl:text-7xl font-black tracking-tight leading-[1.05] text-white">
+                                Create <span class="bg-clip-text text-transparent bg-gradient-to-r from-primary to-rose-300">Smarter</span> Exams.<br>
+                                Learn <span class="bg-clip-text text-transparent bg-gradient-to-r from-primary to-rose-300">Smarter</span>.
+                            </h1>
                         </div>
-                        <div class="w-12 h-[1px] bg-white/10 hidden md:block"></div>
-                        <div class="text-center space-y-1">
-                            <span class="text-[9px] font-black uppercase tracking-[0.4em] text-white/20">Technical Documentation</span>
-                            <h4 class="text-3xl font-black text-white">Madad Abbas</h4>
+
+                        <p class="text-white/70 text-base lg:text-lg leading-relaxed max-w-md">
+                            Turn your study material into personalized exams, take them securely, and get instant AI-powered feedback.
+                        </p>
+
+                        <div class="flex flex-col sm:flex-row items-center lg:items-start gap-4 pt-2 w-full sm:w-auto">
+                            <button onclick="window.tryUstadExam()" class="group w-full sm:w-auto px-10 py-5 rounded-2xl btn-brand-gradient text-white font-black uppercase tracking-widest text-sm shadow-lg shadow-primary/20 hover:shadow-[0_20px_50px_rgba(201, 24, 74,0.4)] hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all flex items-center justify-center gap-2">
+                                Create Your First Exam
+                                <span class="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">arrow_forward</span>
+                            </button>
+                            <button onclick="window.scrollToSection('how-it-works')" class="w-full sm:w-auto px-8 py-5 rounded-2xl bg-white/10 hover:bg-white/[0.14] border border-white/20 hover:border-white/30 text-white font-black uppercase tracking-widest text-sm transition-all">See How It Works</button>
+                        </div>
+
+                        <!-- Truthful supporting line only — no fabricated user/exam counts (see
+                             Why-UstadExam's trust-strip note elsewhere on this page: real claims
+                             only). Free tier being genuinely free with no payment step at all is
+                             a real, verifiable claim. -->
+                        <span class="text-white/30 text-[11px] font-bold">Free to start &middot; No credit card required</span>
+
+                        <div class="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 text-xs font-black uppercase tracking-[0.2em] text-white/40 pt-6 mt-2 border-t border-white/5 w-full">
+                            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined text-base text-primary/70">auto_awesome</span>AI-Powered Generation</span>
+                            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined text-base text-primary/70">fact_check</span>Transparent AI Grading</span>
+                            <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined text-base text-primary/70">verified_user</span>Exam Integrity Monitoring</span>
                         </div>
                     </div>
-                    
-                    <p class="text-white/40 text-xl leading-relaxed max-w-2xl mx-auto font-medium italic pt-4">
-                        "Simplifying the way teachers create professional exams using AI."
+
+                    <!-- Right: product mockup — a real representation of the exam-taking UI, not
+                         decorative art. Mirrors attempt.js's actual question-card/option/timer
+                         language (see #page-attempt) so it reads as the genuine product. -->
+                    <div class="relative flex justify-center lg:justify-end pt-6 lg:pt-0" style="perspective:1600px;">
+                        <div id="hero-mockup-root" class="hero-mockup w-full max-w-[500px]">
+                            <div class="hero-mockup-window rounded-[2.25rem] p-8 space-y-6">
+                                <!-- Header -->
+                                <div class="flex items-center justify-between">
+                                    <div class="flex items-center gap-2.5">
+                                        <img src="logo-icon.png" alt="" class="h-7 w-7 object-contain">
+                                        <span class="text-sm font-black text-white tracking-tight">Ustad<span class="text-primary">Exam</span></span>
+                                    </div>
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-[10px] font-black uppercase tracking-widest text-emerald-400">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> Live
+                                    </span>
+                                </div>
+
+                                <div class="flex items-center justify-between text-[11px] font-black uppercase tracking-widest text-white/30">
+                                    <span id="hero-mock-subject">Biology &mdash; Chapter 4</span>
+                                    <span id="hero-mock-num" class="text-white/50">Question 07/20</span>
+                                </div>
+
+                                <!-- Progress -->
+                                <div class="h-2 rounded-full bg-white/5 overflow-hidden">
+                                    <div id="hero-mock-progress" class="hero-mockup-progress-fill h-full rounded-full bg-gradient-to-r from-primary to-rose-300"></div>
+                                </div>
+
+                                <!-- Question -->
+                                <div class="border-t border-white/5 pt-6 space-y-5">
+                                    <div class="flex items-start justify-between gap-3">
+                                        <p id="hero-mock-question" class="hero-mock-fade text-white font-bold text-base leading-relaxed">Which process is primarily responsible for producing ATP in the cell?</p>
+                                        <span id="hero-mock-correct" class="hero-mock-correct-badge shrink-0 inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-500/30 text-[9px] font-black uppercase tracking-widest text-emerald-400 opacity-0">
+                                            <span class="material-symbols-outlined text-xs">check_circle</span> Correct
+                                        </span>
+                                    </div>
+                                    <div id="hero-mock-options" class="space-y-3 hero-mock-fade">
+                                        <div class="hero-mockup-option flex items-center gap-3 px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white/50 text-sm font-bold" data-idx="0">
+                                            <span class="w-[18px] h-[18px] rounded-full border-2 border-white/20 shrink-0"></span> <span class="hero-mock-opt-label">Photosynthesis</span>
+                                        </div>
+                                        <div class="hero-mockup-option hero-mockup-option--selected flex items-center gap-3 px-5 py-3.5 rounded-xl text-white text-sm font-bold" data-idx="1">
+                                            <span class="w-[18px] h-[18px] rounded-full border-2 border-primary bg-primary shrink-0 flex items-center justify-center">
+                                                <span class="w-1.5 h-1.5 rounded-full bg-white"></span>
+                                            </span> <span class="hero-mock-opt-label">Cellular respiration</span>
+                                        </div>
+                                        <div class="hero-mockup-option flex items-center gap-3 px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white/50 text-sm font-bold" data-idx="2">
+                                            <span class="w-[18px] h-[18px] rounded-full border-2 border-white/20 shrink-0"></span> <span class="hero-mock-opt-label">Transcription</span>
+                                        </div>
+                                        <div class="hero-mockup-option flex items-center gap-3 px-5 py-3.5 rounded-xl bg-white/5 border border-white/10 text-white/50 text-sm font-bold" data-idx="3">
+                                            <span class="w-[18px] h-[18px] rounded-full border-2 border-white/20 shrink-0"></span> <span class="hero-mock-opt-label">Translation</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Footer controls -->
+                                <div class="flex items-center justify-between border-t border-white/5 pt-5">
+                                    <div class="flex items-center gap-2">
+                                        <span class="w-9 h-9 rounded-lg bg-white/5 border border-white/10 flex items-center justify-center text-white/30">
+                                            <span class="material-symbols-outlined text-base">chevron_left</span>
+                                        </span>
+                                        <span class="w-9 h-9 rounded-lg bg-white/10 border border-white/10 flex items-center justify-center text-white/60">
+                                            <span class="material-symbols-outlined text-base">chevron_right</span>
+                                        </span>
+                                    </div>
+                                    <span class="inline-flex items-center gap-1.5 text-xs font-black text-white/30 tabular-nums">
+                                        <span class="material-symbols-outlined text-base">schedule</span> <span id="hero-mock-timer">12:45</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- AI Score floating card — anchored to .hero-mockup itself (not the
+                                 outer wrapper) so it overlaps the window's corner precisely at any
+                                 viewport width. Score count-up re-plays each demo cycle. -->
+                            <div class="hero-float-card hero-float-card--anchored premium-glass rounded-[1.5rem] px-6 py-4 -bottom-6 -left-6 text-center" style="--card-delay:0.5s">
+                                <span class="block text-[9px] font-black uppercase tracking-widest text-white/40">AI Score</span>
+                                <span id="hero-score-value" class="block text-3xl font-black text-primary leading-tight mt-1">92%</span>
+                                <span id="hero-score-label" class="block text-[9px] font-black uppercase tracking-widest text-emerald-400 mt-0.5">Excellent</span>
+                            </div>
+
+                            <!-- AI Generation floating card — cycles between "Generating..." (with a
+                                 filling bar) and "Ready", in sync with the question demo above. -->
+                            <div class="hero-float-card hero-float-card--anchored premium-glass rounded-[1.5rem] px-5 py-3.5 -top-6 -right-6" style="--card-delay:0.8s; min-width:170px;">
+                                <div class="flex items-center gap-3">
+                                    <span id="hero-gen-icon" class="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+                                        <span class="material-symbols-outlined text-lg">auto_awesome</span>
+                                    </span>
+                                    <div class="text-left">
+                                        <span id="hero-gen-label" class="block text-[9px] font-black uppercase tracking-widest text-white/40">AI Generated</span>
+                                        <span id="hero-gen-value" class="block text-xs font-black text-white mt-0.5">20 Questions</span>
+                                    </div>
+                                </div>
+                                <div class="h-1 rounded-full bg-white/5 overflow-hidden mt-2.5">
+                                    <div id="hero-gen-fill" class="h-full rounded-full bg-gradient-to-r from-primary to-rose-300" style="width:100%"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <div class="max-w-[1800px] mx-auto w-full px-6 md:px-16">
+
+                <!-- Vision -->
+                <div id="why-ustadexam" class="min-h-[calc(100vh-5rem)] flex flex-col justify-center max-w-5xl mx-auto space-y-10 py-16 scroll-mt-24">
+                    <div class="text-center space-y-4 reveal">
+                        <span class="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Why UstadExam</span>
+                        <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">Built for how exams actually get made in Pakistan.</h2>
+                        <p class="text-white/70 text-base md:text-lg leading-relaxed max-w-2xl mx-auto">
+                            Every teacher knows the routine of retyping papers, hand-checking dozens of long answers, and chasing down which student is weak where. UstadExam ("ustad" — teacher — plus "exam") takes that manual load off, built to be comfortable on modest connections and with Urdu-medium content, not just polished English textbooks.
+                        </p>
+                    </div>
+
+                    <!-- Transformation timeline — a proper connector (dots + fill-in line, same
+                         pattern as How-It-Works' connector) rather than a floating label. Plays
+                         once when this section scrolls into view: old-workflow words dim out, the
+                         UstadExam workflow words fade in brighter. See landing.js's initTransformLine(). -->
+                    <div class="reveal relative max-w-2xl mx-auto w-full px-4">
+                        <div class="hero-connector-line absolute top-3 left-[8%] right-[8%] h-px bg-white/10" aria-hidden="true">
+                            <div class="h-full bg-gradient-to-r from-white/20 via-primary/50 to-primary/70" data-line-fill></div>
+                        </div>
+                        <div id="transform-line" class="relative flex items-start justify-between">
+                            <div class="flex flex-col items-center gap-2 flex-1">
+                                <span class="w-2.5 h-2.5 rounded-full bg-surface border-2 border-white/20"></span>
+                                <span class="transform-word text-[10px] md:text-xs font-black uppercase tracking-widest text-white/35" data-old="Retype" data-new="Upload">Retype</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-2 flex-1">
+                                <span class="w-2.5 h-2.5 rounded-full bg-surface border-2 border-white/20"></span>
+                                <span class="transform-word text-[10px] md:text-xs font-black uppercase tracking-widest text-white/35" data-old="Format" data-new="Generate">Format</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-2 flex-1">
+                                <span class="w-2.5 h-2.5 rounded-full bg-surface border-2 border-white/20"></span>
+                                <span class="transform-word text-[10px] md:text-xs font-black uppercase tracking-widest text-white/35" data-old="Check" data-new="Grade">Check</span>
+                            </div>
+                            <div class="flex flex-col items-center gap-2 flex-1">
+                                <span class="w-2.5 h-2.5 rounded-full bg-surface border-2 border-white/20"></span>
+                                <span class="transform-word text-[10px] md:text-xs font-black uppercase tracking-widest text-white/35" data-old="Track" data-new="Track">Track</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Old way vs UstadExam — the same four-stage story told twice. Left column
+                         reads as the pain point (muted red-tinted icons, dimmer text, thin red
+                         left-edge accent); right column reads as the upgrade (pink-tinted icons,
+                         full-brightness text, glowing pink left-edge accent + hover lift) — the
+                         visual weight alone should say "right = better." Rows reveal sequentially. -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-10">
+                        <div class="space-y-3">
+                            <span class="reveal block text-center text-[10px] font-black uppercase tracking-[0.3em] text-white/30 mb-2">Old Way</span>
+                            <div class="old-way-card reveal reveal-1 flex items-center gap-4 px-6 py-4 rounded-2xl bg-white/[0.02] border border-white/5 border-l-2 border-l-red-500/20 opacity-60">
+                                <span class="w-9 h-9 rounded-lg bg-red-500/5 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-white/25 text-lg">edit_document</span></span>
+                                <span class="text-white/40 text-sm font-bold">Retype papers by hand</span>
+                            </div>
+                            <div class="old-way-card reveal reveal-2 flex items-center gap-4 px-6 py-4 rounded-2xl bg-white/[0.02] border border-white/5 border-l-2 border-l-red-500/20 opacity-60">
+                                <span class="w-9 h-9 rounded-lg bg-red-500/5 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-white/25 text-lg">format_align_left</span></span>
+                                <span class="text-white/40 text-sm font-bold">Format everything manually</span>
+                            </div>
+                            <div class="old-way-card reveal reveal-3 flex items-center gap-4 px-6 py-4 rounded-2xl bg-white/[0.02] border border-white/5 border-l-2 border-l-red-500/20 opacity-60">
+                                <span class="w-9 h-9 rounded-lg bg-red-500/5 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-white/25 text-lg">fact_check</span></span>
+                                <span class="text-white/40 text-sm font-bold">Check every answer by hand</span>
+                            </div>
+                            <div class="old-way-card reveal reveal-4 flex items-center gap-4 px-6 py-4 rounded-2xl bg-white/[0.02] border border-white/5 border-l-2 border-l-red-500/20 opacity-60">
+                                <span class="w-9 h-9 rounded-lg bg-red-500/5 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-white/25 text-lg">search</span></span>
+                                <span class="text-white/40 text-sm font-bold">Guess which students are weak</span>
+                            </div>
+                        </div>
+                        <div class="space-y-3">
+                            <span class="reveal block text-center text-[10px] font-black uppercase tracking-[0.3em] text-primary/70 mb-2">With UstadExam</span>
+                            <div class="new-way-card reveal reveal-1 flex items-center gap-4 px-6 py-4 rounded-2xl premium-glass border border-primary/20 border-l-2 border-l-primary transition-all hover:-translate-y-0.5 hover:border-primary/40">
+                                <span class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-primary text-lg">upload_file</span></span>
+                                <span class="text-white text-sm font-bold">Upload your study material</span>
+                            </div>
+                            <div class="new-way-card reveal reveal-2 flex items-center gap-4 px-6 py-4 rounded-2xl premium-glass border border-primary/20 border-l-2 border-l-primary transition-all hover:-translate-y-0.5 hover:border-primary/40">
+                                <span class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-primary text-lg">auto_awesome</span></span>
+                                <span class="text-white text-sm font-bold">AI generates a formatted exam</span>
+                            </div>
+                            <div class="new-way-card reveal reveal-3 flex items-center gap-4 px-6 py-4 rounded-2xl premium-glass border border-primary/20 border-l-2 border-l-primary transition-all hover:-translate-y-0.5 hover:border-primary/40">
+                                <span class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-primary text-lg">fact_check</span></span>
+                                <span class="text-white text-sm font-bold">AI grades with a transparent rubric</span>
+                            </div>
+                            <div class="new-way-card reveal reveal-4 flex items-center gap-4 px-6 py-4 rounded-2xl premium-glass border border-primary/20 border-l-2 border-l-primary transition-all hover:-translate-y-0.5 hover:border-primary/40">
+                                <span class="w-9 h-9 rounded-lg bg-primary/15 flex items-center justify-center shrink-0"><span class="material-symbols-outlined text-primary text-lg">monitoring</span></span>
+                                <span class="text-white text-sm font-bold">Weak topics surface automatically</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Trust strip — factual, no fabricated numbers/logos/testimonials. -->
+                    <div class="reveal flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs font-black uppercase tracking-[0.25em] text-white/55 pt-8 mt-2 border-t border-white/5">
+                        <span>Built for teachers</span>
+                        <span class="text-white/15">&middot;</span>
+                        <span>Built for students</span>
+                        <span class="text-white/15">&middot;</span>
+                        <span>Built for real classroom workflows</span>
+                    </div>
+                </div>
+
+                <!-- How It Works -->
+                <div id="how-it-works" class="min-h-[calc(100vh-5rem)] flex flex-col justify-center space-y-14 border-t border-white/5 py-24 scroll-mt-24">
+                    <div class="text-center space-y-3 reveal">
+                        <span class="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">How It Works</span>
+                        <h3 class="text-4xl md:text-5xl font-black text-white tracking-tight">From study material to a graded exam in four steps.</h3>
+                    </div>
+
+                    <div class="relative grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-6 items-stretch">
+                        <!-- Connecting line, desktop only — a static track with a reveal-driven
+                             fill so it reads as "progression" without true scroll-scrubbing.
+                             Maroon-to-pink gradient + slightly thicker so it reads as a path,
+                             not a hairline. -->
+                        <div class="hero-connector-line hidden md:block absolute top-8 left-[12.5%] right-[12.5%] h-[2px] bg-white/10 reveal" aria-hidden="true">
+                            <div class="h-full bg-gradient-to-r from-red-900/70 via-primary/80 to-primary origin-left" data-line-fill></div>
+                        </div>
+
+                        <!-- All four steps share one identical structure/classes for the number
+                             circle, label, and description — no per-step size overrides — and
+                             each step is a flex column with h-full flex-col so its mockup card
+                             gets equal height (via the grid's own row-stretch) and consistent
+                             internal padding regardless of how much content that card holds. -->
+
+                        <!-- Step 1: Upload -->
+                        <div class="reveal reveal-1 h-full flex flex-col items-center text-center gap-4 relative z-10">
+                            <div class="step-number">1</div>
+                            <h4 class="step-label">Upload</h4>
+                            <p class="step-desc">Drop in your notes, textbook chapter, or past papers as a PDF.</p>
+                            <div class="step-card premium-glass rounded-2xl p-4 text-left flex flex-col justify-center gap-2 flex-grow w-full">
+                                <div class="flex items-center gap-2">
+                                    <span class="material-symbols-outlined text-primary text-base">picture_as_pdf</span>
+                                    <span class="text-[10px] font-bold text-white/60 truncate">Biology_Ch4.pdf</span>
+                                </div>
+                                <div class="h-1 rounded-full bg-white/5 overflow-hidden">
+                                    <div class="h-full w-full rounded-full bg-primary/70"></div>
+                                </div>
+                                <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-emerald-400"><span class="material-symbols-outlined text-xs">check_circle</span>Uploaded</span>
+                            </div>
+                        </div>
+
+                        <!-- Step 2: Generate -->
+                        <div class="reveal reveal-2 h-full flex flex-col items-center text-center gap-4 relative z-10">
+                            <div class="step-number">2</div>
+                            <h4 class="step-label">Generate</h4>
+                            <p class="step-desc">Pick your MCQ/short/long mix and difficulty — AI writes a formatted paper.</p>
+                            <div class="step-card premium-glass rounded-2xl p-4 text-left flex flex-col justify-center gap-1.5 flex-grow w-full">
+                                <div class="flex items-center justify-between text-[10px] font-bold text-white/50"><span>MCQs</span><span class="material-symbols-outlined text-emerald-400 text-sm">check_circle</span></div>
+                                <div class="flex items-center justify-between text-[10px] font-bold text-white/50"><span>Difficulty</span><span class="material-symbols-outlined text-emerald-400 text-sm">check_circle</span></div>
+                                <div class="flex items-center justify-between text-[10px] font-bold text-white/50"><span>Topics</span><span class="material-symbols-outlined text-emerald-400 text-sm">check_circle</span></div>
+                                <span class="inline-block mt-1 px-2.5 py-1 rounded-full bg-primary/10 border border-primary/20 text-[9px] font-black uppercase tracking-widest text-primary w-fit">20 Questions</span>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Take & Grade -->
+                        <div class="reveal reveal-3 h-full flex flex-col items-center text-center gap-4 relative z-10">
+                            <div class="step-number">3</div>
+                            <h4 class="step-label">Take &amp; Grade</h4>
+                            <p class="step-desc">Students attempt it in-app; AI grades long answers with a visible rubric.</p>
+                            <div class="step-card premium-glass rounded-2xl p-4 text-left flex flex-col justify-center gap-2 flex-grow w-full">
+                                <span class="text-[10px] font-bold text-white/40">Question 12/20</span>
+                                <div class="flex items-center gap-2 text-[10px] font-bold text-white/50"><span class="w-3 h-3 rounded-full border border-white/20"></span>A</div>
+                                <div class="flex items-center gap-2 text-[10px] font-bold text-white"><span class="w-3 h-3 rounded-full bg-primary"></span>B</div>
+                                <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-emerald-400"><span class="material-symbols-outlined text-xs">check_circle</span>Correct &middot; +5 pts</span>
+                            </div>
+                        </div>
+
+                        <!-- Step 4: Track -->
+                        <div class="reveal reveal-4 h-full flex flex-col items-center text-center gap-4 relative z-10">
+                            <div class="step-number">4</div>
+                            <h4 class="step-label">Track</h4>
+                            <p class="step-desc">Score trends and weak topics surface automatically in your Library.</p>
+                            <div class="step-card premium-glass rounded-2xl p-4 text-left flex flex-col justify-center gap-1.5 flex-grow w-full">
+                                <span class="text-[10px] font-bold text-white/40">Score Trend</span>
+                                <svg viewBox="0 0 120 44" class="w-full h-11" fill="none">
+                                    <!-- Faint axis grid so this reads as a real chart, not a sketch -->
+                                    <line x1="2" y1="6" x2="118" y2="6" stroke="white" stroke-opacity="0.06" stroke-width="1" />
+                                    <line x1="2" y1="20" x2="118" y2="20" stroke="white" stroke-opacity="0.06" stroke-width="1" />
+                                    <line x1="2" y1="34" x2="118" y2="34" stroke="white" stroke-opacity="0.06" stroke-width="1" />
+                                    <path class="chart-draw-path" d="M2 34 L24 30 L46 24 L68 22 L90 12 L118 6" stroke="#ff6b8a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                                    <circle cx="2" cy="34" r="2.5" fill="#ff6b8a" />
+                                    <circle cx="46" cy="24" r="2.5" fill="#ff6b8a" />
+                                    <circle cx="90" cy="12" r="2.5" fill="#ff6b8a" />
+                                    <circle cx="118" cy="6" r="3" fill="#ff6b8a" stroke="#050505" stroke-width="1.5" />
+                                </svg>
+                                <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-emerald-400"><span class="material-symbols-outlined text-xs">trending_up</span>78% &rarr; 91%</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Features — alternating text/product-UI layout: every capability gets a real
+                     mockup instead of just an icon + paragraph. -->
+                <div id="features" class="relative min-h-[calc(100vh-5rem)] flex flex-col justify-center space-y-28 border-t border-white/5 py-24 scroll-mt-24">
+                    <!-- Scroll-scrubbed connector: draws itself through the 4 alternating feature
+                         icons as the section scrolls past, brand pink with a soft glow + a
+                         traveling pulse dot. See landing.js's initFeaturesConnector() — vanilla
+                         SVG/JS, no animation library added. Sits behind the cards (z-0); each
+                         feature row has z-10 via its own grid stacking context. -->
+                    <svg id="features-connector-svg" class="absolute inset-0 w-full h-full pointer-events-none hidden lg:block" style="z-index:0;" aria-hidden="true">
+                        <defs>
+                            <filter id="features-connector-glow" x="-50%" y="-50%" width="200%" height="200%">
+                                <feGaussianBlur stdDeviation="4" result="blur" />
+                                <feMerge>
+                                    <feMergeNode in="blur" />
+                                    <feMergeNode in="SourceGraphic" />
+                                </feMerge>
+                            </filter>
+                        </defs>
+                        <path id="features-connector-glow-path" fill="none" stroke="#ff6b8a" stroke-width="5" stroke-linecap="round" opacity="0.35" filter="url(#features-connector-glow)" />
+                        <path id="features-connector-path" fill="none" stroke="#ff6b8a" stroke-width="2" stroke-linecap="round" />
+                        <circle id="features-connector-pulse" r="5" fill="#fff5f7" filter="url(#features-connector-glow)" />
+                    </svg>
+                    <div class="text-center space-y-3 reveal">
+                        <span class="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Features</span>
+                        <h3 class="text-4xl md:text-5xl font-black text-white tracking-tight">Everything the exam lifecycle needs, in one place.</h3>
+                    </div>
+
+                    <!-- 01 — AI Generation -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div class="reveal space-y-5 text-center lg:text-left order-2 lg:order-1">
+                            <div id="feature-icon-1" class="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto lg:mx-0">
+                                <span class="material-symbols-outlined text-2xl">psychology</span>
+                            </div>
+                            <h4 class="text-2xl md:text-3xl font-black text-white tracking-tight">Generate exams from your own material.</h4>
+                            <p class="text-white/40 text-sm leading-relaxed max-w-md mx-auto lg:mx-0">Upload a PDF of your notes or textbook chapter and UstadExam reads it, then writes MCQ, short, and long questions that actually match your topic — not generic filler.</p>
+                        </div>
+                        <div class="reveal reveal-1 order-1 lg:order-2">
+                            <div class="premium-glass rounded-[2rem] p-7 space-y-4 max-w-md mx-auto">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-white/40">Create Exam</span>
+                                <div class="flex items-center gap-2 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
+                                    <span class="material-symbols-outlined text-primary text-lg">picture_as_pdf</span>
+                                    <span class="text-xs font-bold text-white/70">Biology_Chapter4.pdf</span>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3 text-xs">
+                                    <div class="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 flex justify-between"><span class="text-white/40 font-bold">Questions</span><span class="text-white font-black">20</span></div>
+                                    <div class="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 flex justify-between"><span class="text-white/40 font-bold">Difficulty</span><span class="text-white font-black">Medium</span></div>
+                                </div>
+                                <div class="px-4 py-2.5 rounded-xl bg-white/5 border border-white/10 flex justify-between text-xs"><span class="text-white/40 font-bold">Type</span><span class="text-white font-black">MCQ + Short Answer</span></div>
+                                <button class="btn-brand-gradient w-full py-3.5 rounded-xl text-white font-black uppercase text-[11px] tracking-widest">Generate Exam</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 02 — Transparent Grading -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div class="reveal order-1">
+                            <div class="premium-glass rounded-[2rem] p-7 space-y-4 max-w-md mx-auto">
+                                <span class="text-[10px] font-black uppercase tracking-widest text-white/40">Student Response</span>
+                                <p class="text-white/60 text-xs italic leading-relaxed px-4 py-3 rounded-xl bg-white/5 border border-white/10">"The mitochondria produces ATP through cellular respiration, using oxygen to break down glucose..."</p>
+                                <span class="text-[10px] font-black uppercase tracking-widest text-white/40">AI Evaluation</span>
+                                <div class="space-y-1.5 text-xs font-bold">
+                                    <div class="flex items-center gap-2 text-white/60"><span class="material-symbols-outlined text-emerald-400 text-sm">check_circle</span>Correct concept</div>
+                                    <div class="flex items-center gap-2 text-white/60"><span class="material-symbols-outlined text-emerald-400 text-sm">check_circle</span>Relevant explanation</div>
+                                    <div class="flex items-center gap-2 text-white/60"><span class="material-symbols-outlined text-amber-400 text-sm">change_history</span>Missing detail</div>
+                                </div>
+                                <div class="flex items-center justify-between pt-2 border-t border-white/5">
+                                    <span class="text-[10px] font-black uppercase tracking-widest text-white/40">Score</span>
+                                    <span class="text-2xl font-black text-primary"><span data-count-to="92" data-count-suffix="">0</span><span class="text-sm text-white/30">/100</span></span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="reveal reveal-1 space-y-5 text-center lg:text-left order-2">
+                            <div id="feature-icon-2" class="w-14 h-14 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mx-auto lg:mx-0">
+                                <span class="material-symbols-outlined text-2xl">fact_check</span>
+                            </div>
+                            <h4 class="text-2xl md:text-3xl font-black text-white tracking-tight">Grading you can actually see through.</h4>
+                            <p class="text-white/40 text-sm leading-relaxed max-w-md mx-auto lg:mx-0">Every AI-graded answer comes with a rubric breakdown — what matched, what's missing — and a side-by-side comparison against the model answer. No mystery score.</p>
+                        </div>
+                    </div>
+
+                    <!-- 03 — Exam Integrity -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div class="reveal space-y-5 text-center lg:text-left order-2 lg:order-1">
+                            <div id="feature-icon-3" class="w-14 h-14 rounded-2xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 mx-auto lg:mx-0">
+                                <span class="material-symbols-outlined text-2xl">verified_user</span>
+                            </div>
+                            <h4 class="text-2xl md:text-3xl font-black text-white tracking-tight">Visibility, not surveillance.</h4>
+                            <p class="text-white/40 text-sm leading-relaxed max-w-md mx-auto lg:mx-0">Tab-switch tracking and submission-speed signals give teachers visibility into an exam session — informational only, never automatic penalties or accusations.</p>
+                        </div>
+                        <div class="reveal reveal-1 order-1 lg:order-2">
+                            <div class="premium-glass rounded-[2rem] p-7 space-y-4 max-w-md mx-auto">
+                                <div class="flex items-center justify-between">
+                                    <span class="inline-flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-emerald-400"><span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>Secure Exam</span>
+                                    <span class="text-[10px] font-black text-white/40 tabular-nums">18:42</span>
+                                </div>
+                                <div class="px-4 py-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+                                    <span class="text-white/40 font-bold">Integrity Status</span>
+                                    <span class="inline-flex items-center gap-1 text-emerald-400 font-black"><span class="material-symbols-outlined text-sm">check_circle</span>Active</span>
+                                </div>
+                                <div class="px-4 py-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+                                    <span class="text-white/40 font-bold">Exam Session</span>
+                                    <span class="inline-flex items-center gap-1 text-white font-black"><span class="material-symbols-outlined text-sm text-indigo-400">shield</span>Protected</span>
+                                </div>
+                                <div class="px-4 py-3 rounded-xl bg-white/5 border border-white/10 flex items-center justify-between text-xs">
+                                    <span class="text-white/40 font-bold">Tab Switches</span>
+                                    <span class="text-white font-black">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 04 — Performance Tracking -->
+                    <div class="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+                        <div class="reveal order-1">
+                            <div class="premium-glass rounded-[2rem] p-7 space-y-4 max-w-md mx-auto">
+                                <div class="flex items-center justify-between">
+                                    <span class="text-[10px] font-black uppercase tracking-widest text-white/40">Average Score</span>
+                                    <span class="inline-flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-emerald-400"><span class="material-symbols-outlined text-xs">trending_up</span>Improving</span>
+                                </div>
+                                <div class="flex items-end gap-3">
+                                    <span class="text-4xl font-black text-white"><span data-count-to="91" data-count-suffix="%">0%</span></span>
+                                    <svg viewBox="0 0 120 36" class="flex-grow h-9" fill="none">
+                                        <path class="chart-draw-path" d="M2 30 L26 24 L50 22 L74 12 L98 8 L118 3" stroke="#ff6b8a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" />
+                                    </svg>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3 pt-2 border-t border-white/5 text-xs">
+                                    <div class="flex justify-between"><span class="text-white/40 font-bold">Exams Taken</span><span class="text-white font-black"><span data-count-to="14">0</span></span></div>
+                                    <div class="flex justify-between"><span class="text-white/40 font-bold">Weak Topics</span><span class="text-amber-400 font-black"><span data-count-to="2">0</span></span></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="reveal reveal-1 space-y-5 text-center lg:text-left order-2">
+                            <div id="feature-icon-4" class="w-14 h-14 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-400 mx-auto lg:mx-0">
+                                <span class="material-symbols-outlined text-2xl">monitoring</span>
+                            </div>
+                            <h4 class="text-2xl md:text-3xl font-black text-white tracking-tight">Watch progress happen, not just scores.</h4>
+                            <p class="text-white/40 text-sm leading-relaxed max-w-md mx-auto lg:mx-0">Score trends over time and automatically flagged weak topics, all in your Library — so you know exactly where to focus next, not just what the last score was.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Pricing — full tier detail + FAQ, all on Landing (no separate Pricing page) -->
+                <div id="pricing" class="min-h-[calc(100vh-5rem)] flex flex-col justify-center space-y-16 border-t border-white/5 py-24 scroll-mt-24">
+                    <div class="reveal text-center space-y-3">
+                        <span class="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Pricing</span>
+                        <h3 class="text-4xl md:text-5xl font-black text-white tracking-tight">Simple, honest pricing.</h3>
+                        <p class="text-white/40 text-base max-w-xl mx-auto">Start free. Upgrade only when you need unlimited generation, full grading, or class-wide tools.</p>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch max-w-5xl mx-auto">
+                        <!-- Free -->
+                        <div class="group reveal reveal-1 premium-glass p-10 rounded-[3rem] border border-white/5 flex flex-col space-y-6 hover:border-primary/30 hover:-translate-y-1 transition-all">
+                            <div>
+                                <h4 class="text-sm font-black uppercase tracking-widest text-white/50">Free</h4>
+                                <p class="text-5xl font-black text-white mt-3">Rs. 0</p>
+                                <p class="text-white/30 text-xs font-bold mt-1">forever</p>
+                                <p class="text-white/30 text-xs font-bold mt-3 pt-3 border-t border-white/5">For trying UstadExam.</p>
+                            </div>
+                            <ul class="space-y-3 text-sm text-white/50 group-hover:text-white/70 transition-colors flex-grow">
+                                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> 2 exam generations / day</li>
+                                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> 2 AI grading checks / day</li>
+                                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Medium strictness only</li>
+                                <li class="flex items-center gap-3 opacity-40"><span class="material-symbols-outlined text-lg">lock</span> Grammar checking locked</li>
+                            </ul>
+                            <button onclick="window.pricingCta('free')" class="w-full py-4 rounded-2xl bg-white/5 group-hover:bg-white/10 border border-white/10 text-white font-black uppercase text-xs tracking-widest transition-all">Get Started</button>
+                        </div>
+
+                        <!-- Student Pro -->
+                        <div class="group reveal reveal-2 premium-glass p-10 rounded-[3rem] border-2 border-primary/50 flex flex-col space-y-6 relative hover:-translate-y-1 transition-all">
+                            <span class="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-primary text-white text-[9px] font-black uppercase tracking-widest animate-pulse">Most Popular</span>
+                            <div>
+                                <h4 class="text-sm font-black uppercase tracking-widest text-primary">Student Pro</h4>
+                                <p class="text-5xl font-black text-white mt-3">Rs. 599<span class="text-lg text-white/30">/mo</span></p>
+                                <p class="text-white/30 text-xs font-bold mt-1">billed monthly</p>
+                                <p class="text-primary/80 text-xs font-bold mt-3 pt-3 border-t border-primary/10">For serious individual study.</p>
+                            </div>
+                            <ul class="space-y-3 text-sm text-white/50 group-hover:text-white/70 transition-colors flex-grow">
+                                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Unlimited exam generation</li>
+                                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> All 3 strictness levels</li>
+                                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Grammar checking unlocked</li>
+                                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Full exam history</li>
+                                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Weak-topic detection</li>
+                            </ul>
+                            <button onclick="window.pricingCta('student_pro')" class="w-full py-4 rounded-2xl btn-brand-gradient group-hover:brightness-110 group-hover:shadow-[0_15px_40px_rgba(201, 24, 74,0.4)] text-white font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20 transition-all">Upgrade to Student Pro</button>
+                        </div>
+
+                        <!-- Teacher Pro -->
+                        <div class="group reveal reveal-3 premium-glass p-10 rounded-[3rem] border border-white/5 flex flex-col space-y-6 hover:border-primary/30 hover:-translate-y-1 transition-all">
+                            <div>
+                                <h4 class="text-sm font-black uppercase tracking-widest text-white/50">Teacher Pro</h4>
+                                <p class="text-5xl font-black text-white mt-3">Rs. 3,900<span class="text-lg text-white/30">/mo</span></p>
+                                <p class="text-white/30 text-xs font-bold mt-1">billed monthly</p>
+                                <p class="text-white/30 text-xs font-bold mt-3 pt-3 border-t border-white/5">For teachers managing classes and assessments.</p>
+                            </div>
+                            <ul class="space-y-3 text-sm text-white/50 group-hover:text-white/70 transition-colors flex-grow">
+                                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Everything in Student Pro</li>
+                                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Bulk class generation</li>
+                                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Custom syllabus upload</li>
+                                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Class-wide results dashboard</li>
+                            </ul>
+                            <button onclick="window.pricingCta('teacher_pro')" class="w-full py-4 rounded-2xl bg-white/5 group-hover:bg-white/10 border border-white/10 text-white font-black uppercase text-xs tracking-widest transition-all">Upgrade to Teacher Pro</button>
+                        </div>
+                    </div>
+
+                    <div id="pricing-cta-note" class="hidden max-w-2xl mx-auto premium-glass p-6 rounded-[2rem] border border-primary/20 text-center text-sm text-white/60"></div>
+
+                </div>
+
+                <!-- About — the mission is the hero of this section, not the founder profile. -->
+                <div id="about" class="min-h-[calc(100vh-5rem)] flex flex-col justify-center space-y-12 border-t border-white/5 py-24 scroll-mt-24">
+                    <div class="reveal text-center space-y-3">
+                        <span class="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">About UstadExam</span>
+                        <h3 class="text-4xl md:text-5xl font-black text-white tracking-tight">Built from a real problem.</h3>
+                        <p class="text-white/40 text-sm md:text-base max-w-xl mx-auto leading-relaxed">UstadExam started with a simple idea: exam creation shouldn't require teachers to repeat the same work every time.</p>
+                    </div>
+
+                    <!-- Problem → Idea transformation — side-by-side on desktop (was stacked),
+                         using the section's full width meaningfully instead of just widening
+                         the column with empty padding. -->
+                    <div class="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 items-center">
+                        <div class="reveal reveal-1 premium-glass rounded-[2rem] p-7 space-y-3 border border-white/5 h-full">
+                            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">The Problem</span>
+                            <ul class="space-y-1.5 text-sm text-white/50 font-bold">
+                                <li class="flex items-center gap-2"><span class="material-symbols-outlined text-white/20 text-base">close</span>Repetitive preparation</li>
+                                <li class="flex items-center gap-2"><span class="material-symbols-outlined text-white/20 text-base">close</span>Manual grading</li>
+                                <li class="flex items-center gap-2"><span class="material-symbols-outlined text-white/20 text-base">close</span>Limited feedback</li>
+                            </ul>
+                        </div>
+                        <div class="reveal reveal-2 flex justify-center">
+                            <span class="material-symbols-outlined text-primary/50 text-2xl md:hidden">arrow_downward</span>
+                            <span class="material-symbols-outlined text-primary/50 text-2xl hidden md:block">arrow_forward</span>
+                        </div>
+                        <div class="reveal reveal-3 premium-glass rounded-[2rem] p-7 space-y-2 border border-primary/20 h-full flex flex-col justify-center">
+                            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-primary">The Idea</span>
+                            <p class="text-white text-sm font-bold leading-relaxed">Turn existing study material into structured, gradable assessments using AI.</p>
+                        </div>
+                    </div>
+
+                    <!-- Founder card — asymmetric, personality-first: an offset pink block breaks
+                         out behind the photo, a casual hand-signed greeting instead of a job title,
+                         a small doodle flourish, and a closing note in place of a formal bio. -->
+                    <div class="reveal reveal-4 founder-card">
+                        <div class="founder-photo-block">
+                            <img src="founder-photo.jpg" alt="Mujeeb ur Rehman, founder of UstadExam" class="founder-card-photo">
+                            <span class="founder-doodle-star" aria-hidden="true">✦</span>
+                        </div>
+                        <div class="founder-card-content">
+                            <p class="founder-greeting">Hey there — I'm<br><span class="founder-signature">Mujeeb</span></p>
+                            <svg class="founder-swash" viewBox="0 0 160 20" aria-hidden="true">
+                                <path d="M4 14 Q 40 2, 78 12 T 156 8" fill="none" stroke="#ff6b8a" stroke-width="3" stroke-linecap="round" />
+                            </svg>
+                            <p class="founder-role">Developer <span class="founder-dot">•</span> Founder</p>
+                            <p class="text-white/50 text-sm max-w-sm leading-relaxed">Building UstadExam to turn a teacher's hours of prep and grading into minutes.</p>
+                            <div class="flex items-center gap-2 flex-wrap pt-1">
+                                <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/50">Python</span>
+                                <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/50">AI/ML</span>
+                                <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/50">FastAPI</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="reveal text-center text-white/40 text-sm font-bold">
+                        Building UstadExam one feature at a time. Follow the journey
+                        <a href="https://themujeeb.dev" target="_blank" rel="noopener noreferrer" class="btn-brand-gradient inline-flex items-center gap-1.5 ml-2 px-4 py-2 rounded-full text-white text-[10px] font-black uppercase tracking-widest align-middle transition-all">
+                            themujeeb.dev <span class="material-symbols-outlined text-xs">arrow_outward</span>
+                        </a>
+                    </p>
+
+                    <p class="reveal text-center text-white/50 text-sm md:text-base font-bold max-w-2xl mx-auto leading-relaxed">
+                        Teachers shouldn't have to spend hours preparing and checking exams when their time is better spent teaching.
                     </p>
                 </div>
 
-                <!-- Bigger Cards -->
-                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 w-full animate-fadeIn" style="animation-delay: 0.2s">
-                    <div class="premium-glass p-10 rounded-[3rem] border border-white/5 space-y-6 group hover:border-primary/30 transition-all text-center">
-                        <div class="w-20 h-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary mx-auto group-hover:scale-110 transition-transform">
-                            <span class="material-symbols-outlined text-4xl">psychology</span>
+                <!-- FAQ — standalone section, own accordion. Reuses the app's existing
+                     collapse/expand idiom (see attempt.js's toggleWhyScore): chevron rotates,
+                     panel toggles `hidden`. -->
+                <div id="faq" class="min-h-[calc(100vh-5rem)] flex flex-col justify-center border-t border-white/5 py-20 scroll-mt-24">
+                    <div class="grid grid-cols-1 lg:grid-cols-[38%_1fr] gap-12 lg:gap-16 items-start">
+
+                        <!-- Left: headline + support card -->
+                        <div class="reveal space-y-8 lg:sticky lg:top-24">
+                            <div class="space-y-4 text-center lg:text-left">
+                                <span class="inline-block px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">FAQ</span>
+                                <h3 class="text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.05]">Questions<br>Before You Start</h3>
+                            </div>
+                            <div class="premium-glass rounded-[2rem] p-8 border border-primary/20 space-y-3 text-center lg:text-left">
+                                <h4 class="text-lg font-black text-white">Still have a question?</h4>
+                                <p class="text-white/40 text-sm leading-relaxed">Can't find the answer? Send us an email and we'll get back to you.</p>
+                                <!-- TODO: placeholder contact address — swap for a real inbox before launch -->
+                                <a href="mailto:hello@themujeeb.dev" class="btn-brand-gradient inline-flex items-center gap-2 px-7 py-3.5 rounded-xl text-white font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20 transition-all">
+                                    <span class="material-symbols-outlined text-base">mail</span> Send Email
+                                </a>
+                            </div>
                         </div>
-                        <h4 class="text-xl font-black text-white uppercase tracking-widest">Smart Reading</h4>
-                        <p class="text-white/30 text-xs leading-relaxed">Reads your files to make sure questions match your topic perfectly.</p>
+
+                        <!-- Right: accordion — first item pre-opened -->
+                        <div class="reveal reveal-1 space-y-3">
+                            <!-- Product -->
+                            <div class="faq-item faq-item--open premium-glass rounded-[1.5rem] border overflow-hidden">
+                                <button onclick="window.toggleFaq('faq-1')" class="w-full flex items-center justify-between gap-4 p-6 text-left">
+                                    <span class="font-black text-white text-sm">How does UstadExam generate exams?</span>
+                                    <span id="faq-1-chevron" class="faq-chevron faq-chevron--open material-symbols-outlined shrink-0">expand_more</span>
+                                </button>
+                                <div id="faq-1-wrap" class="faq-answer-wrap is-open">
+                                    <div class="faq-answer-inner">
+                                        <div id="faq-1" class="px-6 pb-6 text-white/40 text-sm leading-relaxed">It reads the study material you upload and writes MCQ, short, and long questions from it using AI — you choose the mix, difficulty, and question count before generating.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="faq-item premium-glass rounded-[1.5rem] border border-white/5 overflow-hidden">
+                                <button onclick="window.toggleFaq('faq-2')" class="w-full flex items-center justify-between gap-4 p-6 text-left">
+                                    <span class="font-black text-white text-sm">What study material can I upload?</span>
+                                    <span id="faq-2-chevron" class="faq-chevron material-symbols-outlined text-white/40 shrink-0">expand_more</span>
+                                </button>
+                                <div id="faq-2-wrap" class="faq-answer-wrap">
+                                    <div class="faq-answer-inner">
+                                        <div id="faq-2" class="px-6 pb-6 text-white/40 text-sm leading-relaxed">PDFs — notes, textbook chapters, or past papers. UstadExam reads the content and generates questions matched to it.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="faq-item premium-glass rounded-[1.5rem] border border-white/5 overflow-hidden">
+                                <button onclick="window.toggleFaq('faq-3')" class="w-full flex items-center justify-between gap-4 p-6 text-left">
+                                    <span class="font-black text-white text-sm">Can UstadExam grade long answers?</span>
+                                    <span id="faq-3-chevron" class="faq-chevron material-symbols-outlined text-white/40 shrink-0">expand_more</span>
+                                </button>
+                                <div id="faq-3-wrap" class="faq-answer-wrap">
+                                    <div class="faq-answer-inner">
+                                        <div id="faq-3" class="px-6 pb-6 text-white/40 text-sm leading-relaxed">Yes — short and long answers are graded by AI against a rubric, with a transparent breakdown of what matched and what's missing, not just a bare score.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="faq-item premium-glass rounded-[1.5rem] border border-white/5 overflow-hidden">
+                                <button onclick="window.toggleFaq('faq-4')" class="w-full flex items-center justify-between gap-4 p-6 text-left">
+                                    <span class="font-black text-white text-sm">Is UstadExam suitable for teachers and students?</span>
+                                    <span id="faq-4-chevron" class="faq-chevron material-symbols-outlined text-white/40 shrink-0">expand_more</span>
+                                </button>
+                                <div id="faq-4-wrap" class="faq-answer-wrap">
+                                    <div class="faq-answer-inner">
+                                        <div id="faq-4" class="px-6 pb-6 text-white/40 text-sm leading-relaxed">Both — registration asks whether you're a teacher or student and adapts accordingly. Teachers can generate class exams; students can generate practice exams for self-study.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="faq-item premium-glass rounded-[1.5rem] border border-white/5 overflow-hidden">
+                                <button onclick="window.toggleFaq('faq-5')" class="w-full flex items-center justify-between gap-4 p-6 text-left">
+                                    <span class="font-black text-white text-sm">How does exam integrity monitoring work?</span>
+                                    <span id="faq-5-chevron" class="faq-chevron material-symbols-outlined text-white/40 shrink-0">expand_more</span>
+                                </button>
+                                <div id="faq-5-wrap" class="faq-answer-wrap">
+                                    <div class="faq-answer-inner">
+                                        <div id="faq-5" class="px-6 pb-6 text-white/40 text-sm leading-relaxed">Tab-switch and submission-speed signals are logged during an attempt and shown to the teacher for review — informational only, never an automatic penalty.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="faq-item premium-glass rounded-[1.5rem] border border-white/5 overflow-hidden">
+                                <button onclick="window.toggleFaq('faq-6')" class="w-full flex items-center justify-between gap-4 p-6 text-left">
+                                    <span class="font-black text-white text-sm">Can I start for free?</span>
+                                    <span id="faq-6-chevron" class="faq-chevron material-symbols-outlined text-white/40 shrink-0">expand_more</span>
+                                </button>
+                                <div id="faq-6-wrap" class="faq-answer-wrap">
+                                    <div class="faq-answer-inner">
+                                        <div id="faq-6" class="px-6 pb-6 text-white/40 text-sm leading-relaxed">Yes — every account starts on the Free plan (2 generations and 2 AI grading checks a day, medium strictness). Upgrade only if you need more.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Billing -->
+                            <div class="faq-item premium-glass rounded-[1.5rem] border border-white/5 overflow-hidden">
+                                <button onclick="window.toggleFaq('faq-7')" class="w-full flex items-center justify-between gap-4 p-6 text-left">
+                                    <span class="font-black text-white text-sm">How do I pay for a paid plan?</span>
+                                    <span id="faq-7-chevron" class="faq-chevron material-symbols-outlined text-white/40 shrink-0">expand_more</span>
+                                </button>
+                                <div id="faq-7-wrap" class="faq-answer-wrap">
+                                    <div class="faq-answer-inner">
+                                        <div id="faq-7" class="px-6 pb-6 text-white/40 text-sm leading-relaxed">At launch, upgrades are handled manually: pay via JazzCash or EasyPaisa and send your payment confirmation over WhatsApp. Your account is upgraded once confirmed.</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="faq-item premium-glass rounded-[1.5rem] border border-white/5 overflow-hidden">
+                                <button onclick="window.toggleFaq('faq-8')" class="w-full flex items-center justify-between gap-4 p-6 text-left">
+                                    <span class="font-black text-white text-sm">Can I cancel anytime?</span>
+                                    <span id="faq-8-chevron" class="faq-chevron material-symbols-outlined text-white/40 shrink-0">expand_more</span>
+                                </button>
+                                <div id="faq-8-wrap" class="faq-answer-wrap">
+                                    <div class="faq-answer-inner">
+                                        <div id="faq-8" class="px-6 pb-6 text-white/40 text-sm leading-relaxed">Yes — message us on WhatsApp and your plan won't renew for the next billing cycle. You keep Pro access until the period you already paid for ends.</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="premium-glass p-10 rounded-[3rem] border border-white/5 space-y-6 group hover:border-primary/30 transition-all text-center">
-                        <div class="w-20 h-20 rounded-3xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 mx-auto group-hover:scale-110 transition-transform">
-                            <span class="material-symbols-outlined text-4xl">description</span>
+                </div>
+
+                <!-- Final CTA — the page's closing beat, not a hero repeat. Two soft glowing
+                     rings bleed off the left/right edges (an echo of the hero's radial glow,
+                     same brand pink) to give the frame some depth beyond flat black + text. -->
+                <div class="relative border-t border-white/5 py-24 text-center overflow-hidden">
+                    <div class="hero-glow" style="width:min(900px,90vw); height:420px;" aria-hidden="true"></div>
+                    <div class="cta-glow-ring cta-glow-ring--left" aria-hidden="true"></div>
+                    <div class="cta-glow-ring cta-glow-ring--right" aria-hidden="true"></div>
+                    <div class="relative z-10 reveal space-y-4 max-w-xl mx-auto px-6">
+                        <span class="inline-block px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Get Started</span>
+                        <h3 class="text-4xl md:text-5xl font-black text-white tracking-tight leading-tight">Ready to create a smarter exam?</h3>
+                        <p class="text-white/40 text-sm md:text-base">Turn your study material into your next assessment.</p>
+                        <div class="pt-2">
+                            <button onclick="window.tryUstadExam()" class="group px-12 py-5 rounded-2xl btn-brand-gradient text-white font-black uppercase tracking-widest text-sm shadow-lg shadow-primary/20 hover:shadow-[0_20px_50px_rgba(201,24,74,0.4)] hover:-translate-y-1 active:scale-95 active:translate-y-0 transition-all inline-flex items-center gap-2">
+                                Create Your First Exam
+                                <span class="material-symbols-outlined text-lg transition-transform group-hover:translate-x-1">arrow_forward</span>
+                            </button>
                         </div>
-                        <h4 class="text-xl font-black text-white uppercase tracking-widest">Easy Scan</h4>
-                        <p class="text-white/30 text-xs leading-relaxed">Turns pictures and PDF files into clear text easily.</p>
+                        <!-- Accurate to the real signup flow: every account starts on the Free plan (see Pricing). -->
+                        <p class="text-white/30 text-xs font-bold">Free to start — no credit card required.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <footer class="border-t border-white/5 mt-10">
+                <div class="max-w-[1800px] mx-auto w-full px-6 md:px-16 pt-20 pb-12 grid grid-cols-1 md:grid-cols-[1.3fr_1fr_1fr_1fr] gap-12">
+                    <div class="space-y-4">
+                        <div class="flex items-center gap-3">
+                            <img src="logo-icon.png" alt="UstadExam" class="h-8 w-8 object-contain">
+                            <span class="text-lg font-black text-white tracking-tight">Ustad<span class="text-primary">Exam</span></span>
+                        </div>
+                        <p class="text-white/30 text-xs leading-relaxed max-w-xs">Create smarter exams. Learn smarter.</p>
+                    </div>
+                    <div class="space-y-4">
+                        <h5 class="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Product</h5>
+                        <div class="flex flex-col gap-3 text-xs font-bold text-white/50">
+                            <a href="javascript:void(0)" onclick="window.scrollToSection('landing-hero')" class="hover:text-primary transition-colors w-fit">Vision</a>
+                            <a href="javascript:void(0)" onclick="window.scrollToSection('how-it-works')" class="hover:text-primary transition-colors w-fit">How It Works</a>
+                            <a href="javascript:void(0)" onclick="window.scrollToSection('features')" class="hover:text-primary transition-colors w-fit">Features</a>
+                            <a href="javascript:void(0)" onclick="window.scrollToSection('pricing')" class="hover:text-primary transition-colors w-fit">Pricing</a>
+                            <a href="javascript:void(0)" onclick="window.scrollToSection('about')" class="hover:text-primary transition-colors w-fit">About</a>
+                            <a href="javascript:void(0)" onclick="window.scrollToSection('faq')" class="hover:text-primary transition-colors w-fit">FAQ</a>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <h5 class="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Legal</h5>
+                        <div class="flex flex-col gap-3 text-xs font-bold text-white/50">
+                            <a href="javascript:void(0)" onclick="window.showLegalPage('privacy')" class="hover:text-primary transition-colors w-fit">Privacy Policy</a>
+                            <a href="javascript:void(0)" onclick="window.showLegalPage('terms')" class="hover:text-primary transition-colors w-fit">Terms &amp; Conditions</a>
+                            <a href="javascript:void(0)" onclick="window.showLegalPage('refund-policy')" class="hover:text-primary transition-colors w-fit">Refund Policy</a>
+                            <a href="javascript:void(0)" onclick="window.showLegalPage('ai-disclaimer')" class="hover:text-primary transition-colors w-fit">AI Disclaimer</a>
+                            <a href="javascript:void(0)" onclick="window.showLegalPage('acceptable-use')" class="hover:text-primary transition-colors w-fit">Academic Integrity</a>
+                            <a href="javascript:void(0)" onclick="window.showLegalPage('cookie-policy')" class="hover:text-primary transition-colors w-fit">Cookie Policy</a>
+                            <a href="javascript:void(0)" onclick="window.showLegalPage('copyright-policy')" class="hover:text-primary transition-colors w-fit">Copyright Policy</a>
+                        </div>
+                    </div>
+                    <div class="space-y-4">
+                        <h5 class="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Support</h5>
+                        <div class="flex flex-col gap-3 text-xs font-bold text-white/50">
+                            <a href="javascript:void(0)" onclick="window.showLegalPage('legal-contact')" class="hover:text-primary transition-colors w-fit">Contact Us</a>
+                            <a href="javascript:void(0)" onclick="window.switchPage('login')" class="hover:text-primary transition-colors w-fit">Login</a>
+                            <a href="javascript:void(0)" onclick="window.switchPage('register')" class="hover:text-primary transition-colors w-fit">Register</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="max-w-[1800px] mx-auto w-full px-6 md:px-16 py-6 border-t border-white/5 flex flex-col md:flex-row items-center justify-between gap-2 text-center md:text-left">
+                    <span class="text-white/20 text-[10px] font-bold uppercase tracking-widest">© 2026 UstadExam. All rights reserved.</span>
+                    <span class="text-white/20 text-[10px] font-bold uppercase tracking-widest">Operated by Mujeeb ur Rehman.</span>
+                </div>
+            </footer>
+          </div>
+        </div>
+
+        <!-- PAGE: LEGAL — one shared shell reused for all 9 legal documents (Privacy, Terms,
+             Refund Policy, AI Disclaimer, Acceptable Use, Cookie Policy, Copyright Policy,
+             Disclaimer, Legal & Contact). window.showLegalPage(slug) (legal.js) fills in the
+             title/updated-date/body from LEGAL_PAGES before activating this page — see main.js's
+             `pages` dict, where all 9 slugs map to this same element. -->
+        <div id="page-legal" class="page-content pt-8">
+            <div class="flex-grow overflow-y-auto custom-scrollbar pb-[300px]">
+                <div class="max-w-[1200px] mx-auto w-full px-6 md:px-10">
+
+                    <!-- Mobile: sidebar collapses behind this toggle instead of showing inline. -->
+                    <button id="legal-mobile-toggle" onclick="window.toggleLegalMobileNav()"
+                        class="md:hidden w-full flex items-center justify-between premium-glass rounded-2xl px-5 py-4 mb-6 border border-white/5">
+                        <span class="flex items-center gap-2 text-[11px] font-black uppercase tracking-[0.25em] text-white/60">
+                            <span class="material-symbols-outlined text-lg text-primary">menu</span>
+                            Sections
+                        </span>
+                        <span id="legal-mobile-toggle-icon" class="material-symbols-outlined text-white/40 transition-transform">expand_more</span>
+                    </button>
+
+                    <div class="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-10 lg:gap-16 items-start">
+                        <!-- Sidebar -->
+                        <nav id="legal-sidebar" class="hidden md:flex md:flex-col md:sticky md:top-8 gap-1">
+                            <span class="px-3 mb-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/30">Legal &amp; Policies</span>
+                            <a href="index.html#privacy" data-legal-slug="privacy" onclick="event.preventDefault(); window.showLegalPage('privacy')" class="legal-nav-item">Privacy Policy</a>
+                            <a href="index.html#terms" data-legal-slug="terms" onclick="event.preventDefault(); window.showLegalPage('terms')" class="legal-nav-item">Terms &amp; Conditions</a>
+                            <a href="index.html#refund-policy" data-legal-slug="refund-policy" onclick="event.preventDefault(); window.showLegalPage('refund-policy')" class="legal-nav-item">Refund Policy</a>
+                            <a href="index.html#ai-disclaimer" data-legal-slug="ai-disclaimer" onclick="event.preventDefault(); window.showLegalPage('ai-disclaimer')" class="legal-nav-item">AI Disclaimer</a>
+                            <a href="index.html#acceptable-use" data-legal-slug="acceptable-use" onclick="event.preventDefault(); window.showLegalPage('acceptable-use')" class="legal-nav-item">Academic Integrity</a>
+                            <a href="index.html#cookie-policy" data-legal-slug="cookie-policy" onclick="event.preventDefault(); window.showLegalPage('cookie-policy')" class="legal-nav-item">Cookie Policy</a>
+                            <a href="index.html#copyright-policy" data-legal-slug="copyright-policy" onclick="event.preventDefault(); window.showLegalPage('copyright-policy')" class="legal-nav-item">Copyright Policy</a>
+                            <a href="index.html#legal-contact" data-legal-slug="legal-contact" onclick="event.preventDefault(); window.showLegalPage('legal-contact')" class="legal-nav-item">Contact Us</a>
+                        </nav>
+
+                        <!-- Content -->
+                        <div class="min-w-0">
+                            <div class="space-y-3 mb-10">
+                                <span class="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40 inline-block">Legal</span>
+                                <h1 id="legal-title" class="text-4xl md:text-5xl font-black text-white tracking-tight"></h1>
+                                <p class="text-white/40 text-sm font-bold">Last Updated: <span id="legal-updated"></span></p>
+                            </div>
+                            <div id="legal-body" class="legal-body"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: LOGIN -->
+        <div id="page-login" class="page-content pt-20">
+            <div class="flex-grow flex items-center justify-center px-6 py-10 overflow-y-auto custom-scrollbar">
+                <div class="auth-panel-enter max-w-[1150px] w-full rounded-[2.5rem] overflow-hidden border border-white/10 flex flex-col lg:flex-row shadow-[0_40px_100px_rgba(0,0,0,0.6),0_0_90px_rgba(201, 24, 74,0.12)]">
+
+                    <!-- Left: gradient visual panel -->
+                    <div class="auth-side-panel relative overflow-hidden lg:w-[42%] p-10 lg:p-12 flex flex-col justify-between gap-10">
+                        <span class="auth-decor-icon material-symbols-outlined" style="top:8%; right:10%; font-size:64px; transform:rotate(-8deg);">menu_book</span>
+                        <span class="auth-decor-icon material-symbols-outlined" style="bottom:14%; right:18%; font-size:44px; transform:rotate(10deg);">edit</span>
+                        <span class="auth-decor-icon material-symbols-outlined" style="bottom:34%; left:8%; font-size:38px; transform:rotate(-6deg);">settings</span>
+
+                        <div class="relative z-10 flex items-center gap-2.5">
+                            <img src="logo-icon.png" alt="UstadExam" class="h-8 w-8 object-contain">
+                            <span class="text-sm font-black text-white tracking-tight">Ustad<span class="text-primary">Exam</span></span>
+                        </div>
+
+                        <div class="relative z-10 space-y-4">
+                            <span class="inline-block px-5 py-2 rounded-full bg-white/10 border border-white/15 text-[10px] font-black uppercase tracking-[0.3em] text-white">Welcome Back</span>
+                            <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.05]">Login to UstadExam</h2>
+                            <p class="text-white/80 text-sm md:text-base font-medium">Pick up where you left off.</p>
+                        </div>
+
+                        <div class="relative z-10"></div>
                     </div>
 
-                    <div class="premium-glass p-10 rounded-[3rem] border border-white/5 space-y-6 group hover:border-primary/30 transition-all text-center">
-                        <div class="w-20 h-20 rounded-3xl bg-amber-500/10 flex items-center justify-center text-amber-400 mx-auto group-hover:scale-110 transition-transform">
-                            <span class="material-symbols-outlined text-4xl">school</span>
+                    <!-- Right: form panel -->
+                    <div class="lg:w-[58%] bg-surface p-8 md:p-12 flex flex-col justify-center space-y-6">
+                        <div class="space-y-2 lg:hidden">
+                            <span class="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Welcome Back</span>
+                            <h2 class="text-3xl font-black text-white tracking-tight">Login to UstadExam</h2>
                         </div>
-                        <h4 class="text-xl font-black text-white uppercase tracking-widest">Difficulty</h4>
-                        <p class="text-white/30 text-xs leading-relaxed">Sorts questions by levels to help students learn better.</p>
+                        <div class="hidden lg:block">
+                            <span class="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Welcome Back</span>
+                            <h2 class="text-2xl font-black text-white tracking-tight mt-1">Login to your account</h2>
+                        </div>
+
+                        <button type="button" onclick="window.loginWithGoogle()" title="Coming soon — needs a Firebase project's config"
+                            class="w-full py-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-white/35 font-bold text-xs tracking-wide flex items-center justify-center gap-3 hover:bg-white/5 transition-all">
+                            <span class="material-symbols-outlined text-base">g_mobiledata</span> Continue with Google <span class="text-[8px] font-bold text-white/20">(coming soon)</span>
+                        </button>
+
+                        <div class="flex items-center gap-4">
+                            <div class="flex-grow h-px bg-white/10"></div>
+                            <span class="text-[9px] font-black uppercase tracking-widest text-white/20">or</span>
+                            <div class="flex-grow h-px bg-white/10"></div>
+                        </div>
+
+                        <div class="space-y-4">
+                            <div>
+                                <input id="login-email" type="email" placeholder="Email" autocomplete="email" oninput="window.validateAuthField('login-email')"
+                                    class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                                <p id="login-email-hint" class="auth-field-hint hidden"></p>
+                            </div>
+                            <div class="relative">
+                                <input id="login-password" type="password" placeholder="Password" autocomplete="current-password"
+                                    class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 pr-12 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                                <button type="button" onclick="window.toggleAuthPasswordVisibility('login-password', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors" tabindex="-1">
+                                    <span class="material-symbols-outlined text-lg">visibility</span>
+                                </button>
+                            </div>
+                            <div class="flex justify-end -mt-2">
+                                <!-- No password-reset backend exists yet (no email service, no reset
+                                     token flow) — same "coming soon" pattern already used for Google
+                                     Sign-In above, rather than a link that goes nowhere. -->
+                                <button type="button" onclick="window.forgotPassword()" class="text-[11px] font-bold text-white/40 hover:text-primary transition-colors">Forgot password?</button>
+                            </div>
+                            <p id="login-error" class="text-[10px] font-bold text-red-400 hidden"></p>
+                            <button id="login-submit-btn" onclick="window.login()"
+                                class="w-full btn-brand-gradient text-white font-black py-4 rounded-2xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all uppercase tracking-widest text-sm">Login</button>
+                        </div>
+
+                        <p class="text-center text-white/40 text-xs font-bold">
+                            Don't have an account? <a href="javascript:void(0)" onclick="window.switchPage('register')" class="text-primary hover:brightness-110">Register</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: REGISTER -->
+        <div id="page-register" class="page-content pt-20">
+            <div class="flex-grow flex items-center justify-center px-6 py-10 overflow-y-auto custom-scrollbar">
+                <div class="auth-panel-enter max-w-[1150px] w-full rounded-[2.5rem] overflow-hidden border border-white/10 flex flex-col lg:flex-row shadow-[0_40px_100px_rgba(0,0,0,0.6),0_0_90px_rgba(201, 24, 74,0.12)]">
+
+                    <!-- Left: gradient visual panel -->
+                    <div class="auth-side-panel relative overflow-hidden lg:w-[42%] p-10 lg:p-12 flex flex-col justify-between gap-8">
+                        <span class="auth-decor-icon material-symbols-outlined" style="top:6%; right:8%; font-size:60px; transform:rotate(-8deg);">psychology</span>
+                        <span class="auth-decor-icon material-symbols-outlined" style="bottom:30%; right:14%; font-size:42px; transform:rotate(8deg);">edit</span>
+                        <span class="auth-decor-icon material-symbols-outlined" style="bottom:8%; left:8%; font-size:40px; transform:rotate(-10deg);">school</span>
+
+                        <div class="relative z-10 flex items-center gap-2.5">
+                            <img src="logo-icon.png" alt="UstadExam" class="h-8 w-8 object-contain">
+                            <span class="text-sm font-black text-white tracking-tight">Ustad<span class="text-primary">Exam</span></span>
+                        </div>
+
+                        <div class="relative z-10 space-y-4">
+                            <span class="inline-block px-5 py-2 rounded-full bg-white/10 border border-white/15 text-[10px] font-black uppercase tracking-[0.3em] text-white">Join UstadExam</span>
+                            <h2 class="text-4xl md:text-5xl font-black text-white tracking-tight leading-[1.05]">Start Creating Smarter Exams</h2>
+                            <p class="text-white/80 text-sm md:text-base font-medium">Set up your account in under a minute.</p>
+                        </div>
+
+                        <div class="relative z-10 space-y-3">
+                            <div class="flex items-center gap-3 px-4 py-3 rounded-2xl bg-black/20 border border-white/10 backdrop-blur-sm">
+                                <span class="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-white text-xs font-black shrink-0">1</span>
+                                <span class="text-white text-xs font-bold">Create your account</span>
+                            </div>
+                            <div class="flex items-center gap-3 px-4 py-3 rounded-2xl bg-black/20 border border-white/10 backdrop-blur-sm">
+                                <span class="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-white text-xs font-black shrink-0">2</span>
+                                <span class="text-white text-xs font-bold">Choose Student or Teacher</span>
+                            </div>
+                            <div class="flex items-center gap-3 px-4 py-3 rounded-2xl bg-black/20 border border-white/10 backdrop-blur-sm">
+                                <span class="w-7 h-7 rounded-full bg-white/15 flex items-center justify-center text-white text-xs font-black shrink-0">3</span>
+                                <span class="text-white text-xs font-bold">Upload your first study material</span>
+                            </div>
+                        </div>
                     </div>
 
-                    <div class="premium-glass p-10 rounded-[3rem] border border-white/5 space-y-6 group hover:border-primary/30 transition-all text-center">
-                        <div class="w-20 h-20 rounded-3xl bg-indigo-500/10 flex items-center justify-center text-indigo-400 mx-auto group-hover:scale-110 transition-transform">
-                            <span class="material-symbols-outlined text-4xl">auto_awesome</span>
+                    <!-- Right: form panel -->
+                    <div class="lg:w-[58%] bg-surface p-8 md:p-12 flex flex-col justify-center space-y-5">
+                        <div class="space-y-2 lg:hidden">
+                            <span class="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Join UstadExam</span>
+                            <h2 class="text-3xl font-black text-white tracking-tight">Create Your Account</h2>
                         </div>
-                        <h4 class="text-xl font-black text-white uppercase tracking-widest">Auto Design</h4>
-                        <p class="text-white/30 text-xs leading-relaxed">Takes care of the layout so papers look professional.</p>
+                        <div class="hidden lg:block">
+                            <span class="text-[10px] font-black uppercase tracking-[0.4em] text-primary">Join UstadExam</span>
+                            <h2 class="text-2xl font-black text-white tracking-tight mt-1">Create your account</h2>
+                        </div>
+
+                        <button type="button" onclick="window.loginWithGoogle()" title="Coming soon — needs a Firebase project's config"
+                            class="w-full py-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-white/35 font-bold text-xs tracking-wide flex items-center justify-center gap-3 hover:bg-white/5 transition-all">
+                            <span class="material-symbols-outlined text-base">g_mobiledata</span> Continue with Google <span class="text-[8px] font-bold text-white/20">(coming soon)</span>
+                        </button>
+
+                        <div class="flex items-center gap-4">
+                            <div class="flex-grow h-px bg-white/10"></div>
+                            <span class="text-[9px] font-black uppercase tracking-widest text-white/20">or</span>
+                            <div class="flex-grow h-px bg-white/10"></div>
+                        </div>
+
+                        <div>
+                            <div class="flex gap-2">
+                                <button type="button" id="register-role-student" onclick="window.setRegisterRole('student')" aria-pressed="true"
+                                    class="btn-brand-gradient flex-1 py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all border-transparent text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40">Student</button>
+                                <button type="button" id="register-role-teacher" onclick="window.setRegisterRole('teacher')" aria-pressed="false"
+                                    class="flex-1 py-3 rounded-xl border text-[10px] font-black uppercase tracking-widest transition-all bg-white/5 border-white/10 text-white/50 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40">Teacher</button>
+                            </div>
+                            <p id="register-role-subtext" class="text-[11px] font-bold text-white/40 mt-2 px-1">Get personalized study exams and instant feedback.</p>
+                        </div>
+
+                        <div class="space-y-4">
+                            <input id="register-name" type="text" placeholder="Full Name" autocomplete="name"
+                                class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                            <div>
+                                <input id="register-email" type="email" placeholder="Email" autocomplete="email" oninput="window.validateAuthField('register-email')"
+                                    class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                                <p id="register-email-hint" class="auth-field-hint hidden"></p>
+                            </div>
+                            <div class="relative">
+                                <input id="register-password" type="password" placeholder="Password (min. 6 characters)" autocomplete="new-password" oninput="window.validateAuthField('register-password')"
+                                    class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 pr-12 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                                <button type="button" onclick="window.toggleAuthPasswordVisibility('register-password', this)" class="absolute right-4 top-1/2 -translate-y-1/2 text-white/30 hover:text-white transition-colors" tabindex="-1">
+                                    <span class="material-symbols-outlined text-lg">visibility</span>
+                                </button>
+                                <p id="register-password-hint" class="auth-field-hint hidden"></p>
+                            </div>
+                            <div>
+                                <select id="register-grade" onchange="window.handleGradeSelectChange()"
+                                    class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                                    <option value="" class="bg-surface">Select Grade / Class</option>
+                                    <option value="Grade 9" class="bg-surface">Grade 9</option>
+                                    <option value="Grade 10" class="bg-surface">Grade 10</option>
+                                    <option value="Grade 11" class="bg-surface">Grade 11</option>
+                                    <option value="Grade 12" class="bg-surface">Grade 12</option>
+                                    <option value="O-Level" class="bg-surface">O-Level</option>
+                                    <option value="A-Level" class="bg-surface">A-Level</option>
+                                    <option value="University" class="bg-surface">University</option>
+                                    <option value="Other" class="bg-surface">Other</option>
+                                </select>
+                                <input id="register-grade-other" type="text" placeholder="Please specify your grade / class"
+                                    class="hidden mt-3 w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                            </div>
+                            <input id="register-subject" type="text" placeholder="Subject You Teach"
+                                class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm font-bold text-white outline-none focus:border-primary transition-all hidden">
+                            <label class="consent-checkbox-wrap">
+                                <input type="checkbox" id="register-terms-consent">
+                                <span class="text-[13px] text-white/60 leading-snug">
+                                    I agree to the
+                                    <a href="index.html#terms" target="_blank" rel="noopener noreferrer">Terms &amp; Conditions</a>
+                                    and
+                                    <a href="index.html#privacy" target="_blank" rel="noopener noreferrer">Privacy Policy</a>
+                                </span>
+                            </label>
+                            <p id="register-error" class="text-[10px] font-bold text-red-400 hidden"></p>
+                            <button id="register-submit-btn" onclick="window.register()"
+                                class="w-full btn-brand-gradient text-white font-black py-4 rounded-2xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all uppercase tracking-widest text-sm">Create Account</button>
+                        </div>
+
+                        <p class="text-center text-white/40 text-xs font-bold">
+                            Already have an account? <a href="javascript:void(0)" onclick="window.switchPage('login')" class="text-primary hover:brightness-110">Login</a>
+                        </p>
                     </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: PRICING (public — reachable from Landing/footer, no auth required) -->
+        <!-- PAGE: PRIVACY POLICY (static placeholder — needs real legal review before launch) -->
+        <div id="page-privacy" class="page-content pt-20 pb-40">
+            <div class="max-w-3xl mx-auto w-full px-6 space-y-8">
+                <button onclick="window.switchPage('landing')" class="flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 transition-all w-fit">
+                    <span class="material-symbols-outlined text-sm">arrow_back</span> Back
+                </button>
+                <h2 class="text-5xl font-black text-white tracking-tighter">Privacy Policy</h2>
+                <div class="premium-glass p-10 rounded-[3rem] border border-white/5 space-y-6 text-white/50 text-sm leading-relaxed">
+                    <div class="p-5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-200 text-xs">
+                        ⚠️ Placeholder text for development purposes. Have a lawyer review this before real launch — especially given a student user base that may include minors, which can trigger additional obligations (e.g. COPPA in the US, GDPR-K in the EU/UK) beyond what's drafted here.
+                    </div>
+                    <div class="space-y-2"><h4 class="text-white font-black uppercase tracking-widest text-xs">Information We Collect</h4><p>Account details you provide at registration (name, email, role, grade or subject), content you upload for exam generation, and exam attempt data (answers, scores, and integrity signals such as tab-switch counts).</p></div>
+                    <div class="space-y-2"><h4 class="text-white font-black uppercase tracking-widest text-xs">How We Use It</h4><p>To generate and grade exams, show you your own progress and history, and let teachers review integrity signals for exams they own. We do not sell personal data.</p></div>
+                    <div class="space-y-2"><h4 class="text-white font-black uppercase tracking-widest text-xs">Third-Party Processing</h4><p>Uploaded study material and student answers are sent to Google's Gemini API for question generation and grading, subject to Google's own data handling terms.</p></div>
+                    <div class="space-y-2"><h4 class="text-white font-black uppercase tracking-widest text-xs">Children's Privacy</h4><p>If this platform is used by students under 18, parental/guardian consent and additional safeguards may be legally required depending on jurisdiction. This has not yet been implemented and must be addressed before real-world launch.</p></div>
+                    <div class="space-y-2"><h4 class="text-white font-black uppercase tracking-widest text-xs">Data Retention</h4><p>Account and exam data is retained until you request deletion. Contact your administrator to request account or data removal.</p></div>
+                    <div class="space-y-2"><h4 class="text-white font-black uppercase tracking-widest text-xs">Contact</h4><p>Questions about this policy should be directed to the platform administrator.</p></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE: TERMS & CONDITIONS (static placeholder — needs real legal review before launch) -->
+        <div id="page-terms" class="page-content pt-20 pb-40">
+            <div class="max-w-3xl mx-auto w-full px-6 space-y-8">
+                <button onclick="window.switchPage('landing')" class="flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 transition-all w-fit">
+                    <span class="material-symbols-outlined text-sm">arrow_back</span> Back
+                </button>
+                <h2 class="text-5xl font-black text-white tracking-tighter">Terms &amp; Conditions</h2>
+                <div class="premium-glass p-10 rounded-[3rem] border border-white/5 space-y-6 text-white/50 text-sm leading-relaxed">
+                    <div class="p-5 bg-amber-500/10 border border-amber-500/20 rounded-2xl text-amber-200 text-xs">
+                        ⚠️ Placeholder text for development purposes. Have a lawyer review this before real launch.
+                    </div>
+                    <div class="space-y-2"><h4 class="text-white font-black uppercase tracking-widest text-xs">Acceptable Use</h4><p>UstadExam is provided for legitimate educational exam generation, grading, and review. You agree not to use it to generate or distribute harmful, plagiarized, or academically dishonest content.</p></div>
+                    <div class="space-y-2"><h4 class="text-white font-black uppercase tracking-widest text-xs">Account Responsibility</h4><p>You are responsible for maintaining the confidentiality of your account credentials and for all activity under your account.</p></div>
+                    <div class="space-y-2"><h4 class="text-white font-black uppercase tracking-widest text-xs">AI-Generated Content</h4><p>Exam questions, grading, and feedback are generated by AI and may contain errors. Teachers should review AI-generated exams and grades before relying on them for grading decisions.</p></div>
+                    <div class="space-y-2"><h4 class="text-white font-black uppercase tracking-widest text-xs">Integrity Monitoring</h4><p>Tab-switch and submission-timing signals are informational only, intended for manual teacher review — not automatic penalties or accusations of misconduct.</p></div>
+                    <div class="space-y-2"><h4 class="text-white font-black uppercase tracking-widest text-xs">Changes</h4><p>These terms may be updated as the platform evolves. Continued use after changes constitutes acceptance of the updated terms.</p></div>
                 </div>
             </div>
         </div>
@@ -438,8 +1606,40 @@
 
 
 
+    <!-- Landing-page header — same floating-pill treatment as #main-nav below (rounded, glassy,
+         centered, fixed top-6 — not edge-to-edge), just with marketing section links instead of
+         app nav buttons. Shown only while #page-landing is active, toggled in main.js's
+         switchPage(). Logo asset is logo-icon.png, cropped+made-transparent from the root
+         logo.png — same rose/white palette as the rest of the app, nothing new introduced. -->
+    <header id="landing-nav" style="display:none;"
+        class="fixed top-6 left-1/2 -translate-x-1/2 z-[200] bg-surface/90 backdrop-blur-3xl rounded-full border border-white/10 pl-4 pr-2 py-2 shadow-[0_40px_100px_rgba(0,0,0,0.8)] max-w-[95vw] overflow-x-auto transition-all duration-500">
+        <div class="flex items-center gap-6 md:gap-8 whitespace-nowrap">
+            <img src="logo-icon.png" alt="UstadExam" onclick="window.scrollToSection('landing-hero')" class="h-8 w-8 object-contain shrink-0 cursor-pointer">
+            <div class="hidden lg:flex items-center gap-5 xl:gap-7">
+                <button data-section-link="landing-hero" onclick="window.scrollToSection('landing-hero')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">Vision</button>
+                <button data-section-link="why-ustadexam" onclick="window.scrollToSection('why-ustadexam')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">Why UstadExam</button>
+                <button data-section-link="how-it-works" onclick="window.scrollToSection('how-it-works')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">How It Works</button>
+                <button data-section-link="features" onclick="window.scrollToSection('features')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">Features</button>
+                <!-- Order matches actual page/scroll order: Pricing sits before About on the page. -->
+                <button data-section-link="pricing" onclick="window.scrollToSection('pricing')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">Pricing</button>
+                <button data-section-link="about" onclick="window.scrollToSection('about')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">About</button>
+                <button data-section-link="faq" onclick="window.scrollToSection('faq')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">FAQ</button>
+            </div>
+            <button onclick="window.tryUstadExam()" class="px-6 py-3 rounded-full btn-brand-gradient text-white font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all whitespace-nowrap">Try UstadExam</button>
+        </div>
+    </header>
+
+    <!-- Login/Register only — a minimal standalone icon button back to the public Landing page,
+         instead of cramming a "Back" pill into the app-shell nav (which looked cluttered next to
+         Login/Register there, and overflowed on mobile). Toggled opposite #main-nav in
+         main.js's switchPage(). -->
+    <button id="auth-back-btn" onclick="window.switchPage('landing')" style="display:none;"
+        class="fixed top-6 left-6 z-[200] w-14 h-14 rounded-full bg-surface/90 backdrop-blur-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] flex items-center justify-center text-white/60 hover:text-white hover:border-primary/30 transition-all">
+        <span class="material-symbols-outlined text-2xl">arrow_back</span>
+    </button>
+
     <nav id="main-nav"
-        class="fixed bottom-[130px] left-1/2 -translate-x-1/2 z-[200] flex items-center space-x-1 bg-surface/90 backdrop-blur-3xl rounded-full border border-white/10 p-2 shadow-[0_40px_100px_rgba(0,0,0,0.8)] max-w-[95vw] overflow-x-auto transition-all duration-500">
+        class="fixed bottom-6 top-auto left-1/2 -translate-x-1/2 z-[200] flex items-center space-x-1 bg-surface/90 backdrop-blur-3xl rounded-full border border-white/10 p-2 shadow-[0_40px_100px_rgba(0,0,0,0.8)] max-w-[95vw] overflow-x-auto transition-all duration-500">
         <button id="nav-generate" class="nav-btn active flex items-center gap-3 px-8 py-4 rounded-full transition-all">
             <span class="material-symbols-outlined">auto_awesome</span>
             <span class="font-bold text-sm uppercase tracking-[0.2em]">Generate</span>
@@ -448,9 +1648,22 @@
             <span class="material-symbols-outlined">inventory_2</span>
             <span class="font-bold text-sm uppercase tracking-[0.2em]">Library</span>
         </button>
-        <button id="nav-about" class="nav-btn flex items-center gap-3 px-8 py-4 rounded-full text-white/40 hover:text-white transition-all">
-            <span class="material-symbols-outlined">info</span>
-            <span class="font-bold text-sm uppercase tracking-[0.2em]">About</span>
+        <button id="nav-integrity" class="nav-btn flex items-center gap-3 px-8 py-4 rounded-full text-white/40 hover:text-white transition-all">
+            <span class="material-symbols-outlined">verified_user</span>
+            <span class="font-bold text-sm uppercase tracking-[0.2em]">Integrity</span>
+        </button>
+        <!-- Auth-aware buttons: exactly one of each pair is shown at a time, toggled by auth.js's updateNavForAuthState() -->
+        <button id="nav-profile" class="nav-btn hidden flex items-center gap-3 px-8 py-4 rounded-full text-white/40 hover:text-white transition-all">
+            <span class="material-symbols-outlined">account_circle</span>
+            <span class="font-bold text-sm uppercase tracking-[0.2em]">Profile</span>
+        </button>
+        <button id="nav-login" class="nav-btn hidden flex items-center gap-3 px-8 py-4 rounded-full text-white/40 hover:text-white transition-all">
+            <span class="material-symbols-outlined">login</span>
+            <span class="font-bold text-sm uppercase tracking-[0.2em]">Login</span>
+        </button>
+        <button id="nav-register" class="nav-btn hidden flex items-center gap-3 px-8 py-4 rounded-full text-white/40 hover:text-white transition-all">
+            <span class="material-symbols-outlined">person_add</span>
+            <span class="font-bold text-sm uppercase tracking-[0.2em]">Register</span>
         </button>
     </nav>
     <!-- Custom Question Modal -->
@@ -559,8 +1772,14 @@
 
     <!-- Core Application Scripts -->
     <script src="src/api.js"></script>
+    <script src="src/auth.js"></script>
     <script src="src/ui.js"></script>
+    <script src="src/legal.js"></script>
     <script src="src/main.js"></script>
+    <script src="src/attempt.js"></script>
+    <script src="src/profile.js"></script>
+    <script src="src/integrity.js"></script>
+    <script src="src/landing.js"></script>
 
     <!-- Preview Overlay (Full Screen) -->
     <div id="preview-section"
@@ -587,6 +1806,17 @@
 
                 <div class="flex items-center gap-4">
                     <div id="export-actions" class="flex items-center gap-4">
+                        <!-- Take Exam — the actual student flow (in-app attempt + AI grading),
+                             role-styled by updatePreviewTakeExamButton() in main.js: bold
+                             gradient/primary for students, ghost/secondary for teachers.
+                             Hidden until an exam_id actually exists to attempt. -->
+                        <button id="btn-take-exam-preview" onclick="window.takeExamFromPreview()"
+                            class="hidden items-center gap-2 px-6 py-3 rounded-2xl font-black uppercase text-[11px] tracking-widest transition-all">
+                            <span class="material-symbols-outlined text-lg">edit_note</span>
+                            <span class="hidden lg:inline">Take Exam</span>
+                        </button>
+                        <div id="take-exam-divider" class="hidden w-[1px] h-8 bg-white/10 mx-1"></div>
+
                         <!-- Show Answers Toggle -->
                         <div class="flex items-center gap-3 px-5 py-2.5 bg-white/5 rounded-2xl border border-white/10">
                             <span class="text-[10px] font-black uppercase tracking-widest text-white/40">Show
@@ -713,6 +1943,77 @@
                 <button id="confirm-delete-q-btn"
                     class="flex-1 px-8 py-4 rounded-2xl bg-red-500 text-white font-black uppercase tracking-widest hover:bg-red-600 shadow-lg shadow-red-500/20 transition-all">Remove</button>
             </div>
+        </div>
+    </div>
+    <!-- Start Attempt Modal (enter Student ID before taking an exam) -->
+    <div id="start-attempt-modal" class="modal-backdrop">
+        <div class="modal-content premium-glass p-10 rounded-[3rem] border border-white/10 max-w-md space-y-8">
+            <div class="flex justify-between items-center">
+                <div class="space-y-1">
+                    <span class="text-[9px] font-black uppercase tracking-[0.3em] text-primary">Exam Attempt</span>
+                    <h3 class="text-2xl font-black text-white uppercase tracking-tight">Identify Yourself</h3>
+                </div>
+                <button onclick="window.closeStartAttemptModal()"
+                    class="w-10 h-10 rounded-full bg-white/5 hover:bg-white/10 flex items-center justify-center transition-all">
+                    <span class="material-symbols-outlined text-white/40">close</span>
+                </button>
+            </div>
+            <div class="space-y-2">
+                <label class="text-[9px] font-black uppercase text-primary">Student Name / ID</label>
+                <input id="start-attempt-student-id" type="text" placeholder="e.g. Mujeeb Butt or Roll No."
+                    class="w-full bg-white/5 border border-white/10 rounded-xl px-5 py-4 text-sm font-bold text-white outline-none focus:border-primary transition-all">
+                <p id="start-attempt-error" class="text-[10px] font-bold text-red-400 hidden"></p>
+            </div>
+            <button id="start-attempt-confirm-btn" onclick="window.confirmStartAttempt()"
+                class="w-full bg-primary text-white font-black py-4 rounded-2xl shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all flex items-center justify-center gap-2">
+                <span class="material-symbols-outlined text-xl">play_arrow</span> Begin Exam
+            </button>
+        </div>
+    </div>
+
+    <!-- Generic Confirm/Alert Modal (exam-attempt flow) — replaces browser-native confirm()/alert() -->
+    <div id="attempt-confirm-modal" class="modal-backdrop">
+        <div class="modal-content premium-glass p-10 rounded-[3rem] border border-white/10 text-center space-y-8 max-w-md">
+            <div class="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                <span id="attempt-confirm-icon" class="material-symbols-outlined text-4xl text-primary">help</span>
+            </div>
+            <div class="space-y-2">
+                <h3 id="attempt-confirm-title" class="text-2xl font-black text-white uppercase tracking-tight">Confirm</h3>
+                <p id="attempt-confirm-message" class="text-white/40 font-bold"></p>
+            </div>
+            <div class="flex gap-4">
+                <button id="attempt-confirm-cancel-btn"
+                    class="flex-1 px-8 py-4 rounded-2xl bg-white/5 border border-white/10 text-white font-black uppercase tracking-widest hover:bg-white/10 transition-all">Cancel</button>
+                <button id="attempt-confirm-ok-btn"
+                    class="flex-1 px-8 py-4 rounded-2xl bg-primary text-white font-black uppercase tracking-widest hover:brightness-110 shadow-lg shadow-primary/20 transition-all">Confirm</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- PAGE: EXAM ATTEMPT -->
+    <div id="page-attempt" class="page-content pt-20">
+        <div class="flex-grow overflow-y-auto custom-scrollbar pb-[300px]">
+            <div class="max-w-[1800px] mx-auto px-6 md:px-16 space-y-6">
+                <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <button onclick="window.exitAttempt()"
+                        class="flex items-center gap-3 px-6 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-[10px] font-black uppercase tracking-widest text-white/60 transition-all w-fit">
+                        <span class="material-symbols-outlined text-sm">arrow_back</span> Back to Library
+                    </button>
+                    <div class="text-left md:text-right space-y-1">
+                        <span id="attempt-exam-title" class="block text-3xl md:text-5xl font-black text-white tracking-tighter leading-none"></span>
+                        <span id="attempt-exam-subject" class="text-[10px] font-black uppercase tracking-[0.3em] text-primary"></span>
+                    </div>
+                </div>
+
+                <div id="attempt-content" class="space-y-10 animate-fadeIn">
+                    <!-- Rendered dynamically by attempt.js -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Attempt Action Bar (Floating Bottom Bar, mirrors Exam Controls in page-generate) -->
+        <div id="attempt-action-bar" class="fixed bottom-8 left-1/2 -translate-x-1/2 w-[95%] max-w-[1800px] z-[150] animate-slideUp">
+            <!-- Rendered dynamically by attempt.js -->
         </div>
     </div>
 </body>

@@ -7,7 +7,10 @@ import os
 class VectorStore:
     def __init__(self):
         # Initialize persistent ChromaDB client
-        self.db_path = "./data/chroma_db"
+        # Portable path consistent with database.py / upload.py / ocr_service.py:
+        # resolved from __file__, independent of the working directory the server is launched from.
+        BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # backend/
+        self.db_path = os.path.join(BASE_DIR, "data", "chroma_db")
         os.makedirs(self.db_path, exist_ok=True)
         self.client = chromadb.PersistentClient(path=self.db_path)
         

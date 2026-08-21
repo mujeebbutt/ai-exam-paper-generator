@@ -17,3 +17,6 @@ weasyprint
 ollama
 aiohttp
 fpdf
+
+bcrypt
+PyJWT

@@ -4,6 +4,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     const state = {
         sessionId: null,
+        // The generated exam's real DB id — only ever populated when /generate persisted it
+        // (i.e. the caller was logged in; Generate is a protected page so that's always true
+        // in practice). Drives the Preview modal's "Take Exam" button — see openPreview().
+        examId: null,
         files: [],
         questions: [],
         isGenerating: false,
@@ -58,15 +62,32 @@ document.addEventListener('DOMContentLoaded', () => {
     let isLogoUploading = false;
 
     // DOM Elements
+    // Every LEGAL_PAGES slug (legal.js) maps to the same shared #page-legal shell — its
+    // title/date/body get filled in by window.showLegalPage(slug) right before switchPage()
+    // runs, so activating any of these ids just shows whatever showLegalPage() last rendered.
+    const legalPage = document.getElementById('page-legal');
+    const legalPages = window.LEGAL_PAGES
+        ? Object.fromEntries(Object.keys(window.LEGAL_PAGES).map(slug => [slug, legalPage]))
+        : {};
+
     const pages = {
         generate: document.getElementById('page-generate'),
         vault: document.getElementById('page-vault'),
-        about: document.getElementById('page-about')
+        integrity: document.getElementById('page-integrity'),
+        profile: document.getElementById('page-profile'),
+        landing: document.getElementById('page-landing'),
+        login: document.getElementById('page-login'),
+        register: document.getElementById('page-register'),
+        legal: legalPage,
+        ...legalPages,
     };
     const navButtons = {
         generate: document.getElementById('nav-generate'),
         vault: document.getElementById('nav-vault'),
-        about: document.getElementById('nav-about'),
+        integrity: document.getElementById('nav-integrity'),
+        profile: document.getElementById('nav-profile'),
+        login: document.getElementById('nav-login'),
+        register: document.getElementById('nav-register'),
         createNew: document.getElementById('nav-create-new')
     };
 
@@ -87,6 +108,17 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Navigation Logic ---
     function switchPage(pageId) {
+        // Route guard (Phase 5): Profile and Generate require a logged-in session. The actual
+        // enforcement is on the backend (every protected endpoint checks its own Bearer token
+        // independently) — this only redirects the UI to Login before rendering a page the
+        // user couldn't do anything on anyway.
+        if (window.requireAuthForPage && !window.requireAuthForPage(pageId)) return;
+
+        // Defensive: page-attempt is a page-content sibling owned by attempt.js,
+        // not tracked in `pages` below — make sure it's never left active
+        // underneath any other page if a nav button is clicked directly.
+        document.getElementById('page-attempt')?.classList.remove('active');
+
         Object.keys(pages).forEach(id => {
             if (pages[id]) pages[id].classList.remove('active');
             if (navButtons[id]) {
@@ -100,6 +132,33 @@ document.addEventListener('DOMContentLoaded', () => {
             navButtons[pageId].classList.remove('text-white/40');
         }
         state.activePage = pageId;
+
+        // Three mutually-exclusive nav treatments, swapped via inline style.display (not the
+        // `hidden` utility class, since #landing-nav's own classes already include layout
+        // utilities on the same element — a toggled class risks losing to them on specificity,
+        // whereas style.display always wins):
+        //   - Landing: its own floating pill header (logo/section-links/CTA).
+        //   - Login/Register/Legal: just a minimal standalone back-to-Landing icon button — the
+        //     full app-shell pill (Generate/Library/...) doesn't apply pre-auth, and cramming a
+        //     "Back" item into it looked cluttered and overflowed on mobile. Legal pages reuse
+        //     this same treatment (no bottom navbar/footer there, per spec) rather than getting
+        //     a third bespoke back button.
+        //   - Everywhere else: the normal app-shell pill.
+        const isLanding = pageId === 'landing';
+        const onLegalPage = pages[pageId] === legalPage;
+        const onAuthPage = pageId === 'login' || pageId === 'register' || onLegalPage;
+        const landingNav = document.getElementById('landing-nav');
+        const mainNav = document.getElementById('main-nav');
+        const authBackBtn = document.getElementById('auth-back-btn');
+        if (landingNav) landingNav.style.display = isLanding ? '' : 'none';
+        if (mainNav) mainNav.style.display = (isLanding || onAuthPage) ? 'none' : '';
+        if (authBackBtn) authBackBtn.style.display = onAuthPage ? 'flex' : 'none';
+
+        // The hero's simulated demo loop (landing.js) should only ever run while Landing is
+        // actually on screen — start/stop it here rather than leaving an interval ticking in
+        // the background on every other page.
+        if (isLanding && window.startLandingHero) window.startLandingHero();
+        else if (window.stopLandingHero) window.stopLandingHero();
 
         const aiHelper = document.getElementById('ai-helper');
         if (aiHelper) {
@@ -115,7 +174,13 @@ document.addEventListener('DOMContentLoaded', () => {
         }
 
         if (pageId === 'vault') loadVault();
+        if (pageId === 'profile' && window.initProfilePage) window.initProfilePage();
+        if (pageId === 'integrity' && window.initIntegrityPage) window.initIntegrityPage();
+        if (pageId === 'register' && window.initRegisterPage) window.initRegisterPage();
     }
+    // Exposed on window so attempt.js (a separate script) can return to the Library
+    // and refresh it after an exam attempt, reusing this logic instead of duplicating it.
+    window.switchPage = switchPage;
 
     // Nav button event listeners
     if (navButtons.generate) {
@@ -132,8 +197,21 @@ document.addEventListener('DOMContentLoaded', () => {
     if (navButtons.vault) {
         navButtons.vault.addEventListener('click', () => switchPage('vault'));
     }
-    if (navButtons.about) {
-        navButtons.about.addEventListener('click', () => switchPage('about'));
+    if (navButtons.integrity) {
+        navButtons.integrity.addEventListener('click', () => switchPage('integrity'));
+    }
+    if (navButtons.profile) {
+        navButtons.profile.addEventListener('click', () => switchPage('profile'));
+    }
+    if (navButtons.login) {
+        navButtons.login.addEventListener('click', () => switchPage('login'));
+    }
+    if (navButtons.register) {
+        navButtons.register.addEventListener('click', () => switchPage('register'));
+    }
+    const navLogoutBtn = document.getElementById('nav-logout');
+    if (navLogoutBtn) {
+        navLogoutBtn.addEventListener('click', () => { if (window.logout) window.logout(); });
     }
 
     // --- Reset Functions ---
@@ -720,7 +798,8 @@ document.addEventListener('DOMContentLoaded', () => {
             
             state.questions = data.questions || [];
             state.subject = data.subject || null;
-            
+            state.examId = data.exam_id || null;
+
             if (state.questions.length === 0) {
                 showAIError("❌ The AI didn't return any questions. Please try again.");
             } else {
@@ -743,8 +822,55 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Helper UI Functions ---
+    // Role-aware "Take Exam" button in the Preview modal toolbar: primary/gradient for
+    // students, secondary/ghost for teachers (who still get the option to preview/attempt
+    // it themselves), hidden entirely if there's no persisted exam to attempt yet. Called
+    // every time the modal opens, from both the fresh-generation and Library "View Paper"
+    // paths (openPreview() is the shared entry point for both).
+    function updatePreviewTakeExamButton() {
+        const btn = document.getElementById('btn-take-exam-preview');
+        const divider = document.getElementById('take-exam-divider');
+        if (!btn) return;
+
+        if (!state.examId) {
+            btn.classList.add('hidden');
+            btn.classList.remove('flex');
+            if (divider) divider.classList.add('hidden');
+            return;
+        }
+        btn.classList.remove('hidden');
+        btn.classList.add('flex');
+        if (divider) divider.classList.remove('hidden');
+
+        const user = window.getCurrentUser ? window.getCurrentUser() : null;
+        const isTeacher = user?.role === 'teacher';
+        btn.classList.remove('btn-brand-gradient', 'shadow-lg', 'shadow-primary/30', 'text-white',
+                              'bg-white/5', 'hover:bg-white/10', 'border', 'border-white/10', 'text-white/70');
+        if (isTeacher) {
+            // Secondary/ghost — teachers' primary actions stay Question Paper / Answer Key export,
+            // but they can still preview/attempt the exam themselves.
+            btn.classList.add('bg-white/5', 'hover:bg-white/10', 'border', 'border-white/10', 'text-white/70');
+        } else {
+            // Primary/unmissable — this is the actual point of a student generating an exam.
+            btn.classList.add('btn-brand-gradient', 'shadow-lg', 'shadow-primary/30', 'text-white');
+        }
+    }
+
+    // Entry point for the Preview modal's "Take Exam" button — closes the document preview and
+    // hands off to the existing attempt flow (same modal the Library's "Take Exam" card button
+    // uses) instead of duplicating any of that logic here.
+    window.takeExamFromPreview = () => {
+        if (!state.examId) {
+            showAIError("❌ We couldn't load this exam to attempt — please try generating it again.");
+            return;
+        }
+        window.closePreview();
+        if (window.openStartAttemptModal) window.openStartAttemptModal(state.examId);
+    };
+
     function openPreview() {
         if (!previewSection) return;
+        updatePreviewTakeExamButton();
         previewSection.style.display = 'flex';
         setTimeout(() => {
             previewSection.classList.remove('hidden', 'opacity-0');
@@ -903,7 +1029,12 @@ document.addEventListener('DOMContentLoaded', () => {
             const exams = await fetchExams();
             console.log("Fetched Exams:", exams);
             state.currentExams = exams;
-            
+
+            // Phase 5 continuation: "My Learning Progress" (score chart / history / weak topics)
+            // moved here from Profile — Library is the papers-and-performance home now, Profile
+            // is account-only. See profile.js's renderLibraryProgress().
+            if (window.renderLibraryProgress) window.renderLibraryProgress();
+
             if (!exams || exams.length === 0) {
                 vaultList.innerHTML = `<div class="premium-glass p-20 rounded-[3rem] text-center border-dashed border-white/10 text-white/40">
                     <span class="material-symbols-outlined text-6xl block mb-4">inventory_2</span>
@@ -953,6 +1084,9 @@ document.addEventListener('DOMContentLoaded', () => {
                         <button onclick="viewExam(${index})" class="flex-grow py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white transition-all">
                             View Paper
                         </button>
+                        <button onclick="window.openStartAttemptModal(${exam.id})" class="flex-grow py-4 rounded-2xl bg-primary/10 hover:bg-primary/20 border border-primary/20 text-primary text-[9px] font-black uppercase tracking-widest transition-all flex items-center justify-center gap-2">
+                            <span class="material-symbols-outlined text-sm">edit_note</span> Take Exam
+                        </button>
                     </div>
                 </div>
             `).join('');
@@ -964,6 +1098,8 @@ document.addEventListener('DOMContentLoaded', () => {
             </div>`;
         }
     }
+    // Exposed so attempt.js can refresh the Library after an exam attempt completes.
+    window.loadVault = loadVault;
 
     window.viewExam = (index) => {
         if (index < 0 || index >= state.currentExams.length) return;
@@ -979,6 +1115,7 @@ document.addEventListener('DOMContentLoaded', () => {
         state.student_info = exam.student_info || state.student_info;
         state.isFromVault = true;
         state.subject = exam.subject || null;
+        state.examId = exam.id || null;
         
         renderPreview(state);
         openPreview();
@@ -1034,6 +1171,10 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     // --- Robot & Messages ---
+    // Exposed on window: index.html's #robot-avatar has an inline onclick="...showAIMessage(...)"
+    // attribute, which executes in the global scope and can't see this closure-local function
+    // otherwise (pre-existing bug — surfaced as "showAIMessage is not defined" when clicked).
+    window.showAIMessage = showAIMessage;
     function showAIMessage(msg) {
         if (!aiMessage) return;
         aiMessage.innerHTML = msg;
@@ -1181,12 +1322,26 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // --- Initialize ---
     setTimeout(() => window.updateLiveMarks(), 100);
-    
+
+    // A legal-page link (footer, Register's consent checkbox, an external share) is a real
+    // <a href="index.html#privacy" target="_blank"> — this is what makes that actually land on
+    // the right document in the new tab instead of just whatever page loads by default. Takes
+    // priority over the auth-based landing/generate default below; legal pages are public
+    // regardless of login state. See legal.js for LEGAL_SLUG_FROM_HASH.
+    if (window.LEGAL_SLUG_FROM_HASH && window.showLegalPage) {
+        window.showLegalPage(window.LEGAL_SLUG_FROM_HASH);
+    } else if (window.isAuthenticated && !window.isAuthenticated()) {
+        // page-generate is marked active by default in the HTML (matches pre-Phase-5 behavior
+        // for a returning logged-in user), but it's now a protected page — logged-out visitors
+        // land on the public Landing page instead.
+        switchPage('landing');
+    }
+
     // Load vault if on vault page initially
     if (document.getElementById('page-vault')?.classList.contains('active')) {
         loadVault();
     }
-    
-    console.log('✅ AI Exam Maker initialized successfully!');
+
+    console.log('✅ UstadExam initialized successfully!');
     console.log('🔍 Type debugState() in console to check current state.');
 });

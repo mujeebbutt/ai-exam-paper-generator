@@ -3,8 +3,9 @@ from sqlalchemy.orm import Session
 from db.database import get_db
 from db import models
 from models import schemas
-from typing import List
+from typing import List, Optional
 import logging
+from routers.auth import get_current_user_optional
 
 
 router = APIRouter()
@@ -23,8 +24,21 @@ def create_question(question: schemas.QuestionCreate, db: Session = Depends(get_
     return db_question
 
 @router.get("/exams", response_model=List[schemas.Exam])
-def get_exams(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    exams = db.query(models.Exam).offset(skip).limit(limit).all()
+def get_exams(
+    skip: int = 0,
+    limit: int = 100,
+    db: Session = Depends(get_db),
+    current_user: Optional[models.User] = Depends(get_current_user_optional),
+):
+    # Data-scoping rule (Phase 5 continuation): when the caller is authenticated, this is
+    # "the Library" and must return ONLY that user's own generated papers — never a mix with
+    # anyone else's or unowned/global data. Anonymous callers (e.g. direct API use, or any
+    # future public/shared view) still get the unfiltered list so this endpoint stays usable
+    # outside the authenticated app shell.
+    query = db.query(models.Exam)
+    if current_user is not None:
+        query = query.filter(models.Exam.user_id == current_user.id)
+    exams = query.order_by(models.Exam.id.desc()).offset(skip).limit(limit).all()
     return exams
 
 @router.delete("/exams/{session_id}")

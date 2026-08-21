@@ -46,7 +46,7 @@ body::before {
     position: fixed;
     width: 800px;
     height: 800px;
-    background: radial-gradient(circle, rgba(225, 29, 72, 0.1) 0%, transparent 70%);
+    background: radial-gradient(circle, rgba(201, 24, 74, 0.1) 0%, transparent 70%);
     filter: blur(120px);
     border-radius: 50%;
     z-index: -3;
@@ -149,6 +149,12 @@ body::before {
     animation: pulseText 8s infinite ease-in-out;
 }
 
+/* Landing hero headline — same gentle breathing motion as #hero-section above, just addressed
+   by class since the current markup uses .hero-headline rather than that legacy id. */
+.hero-headline {
+    animation: pulseText 9s infinite ease-in-out;
+}
+
 #input-container {
     animation: floatUI 10s infinite ease-in-out;
 }
@@ -173,17 +179,17 @@ body::before {
 }
 
 .premium-glass:hover {
-    background: radial-gradient(circle at top left, rgba(225, 29, 72, 0.05), transparent 50%),
+    background: radial-gradient(circle at top left, rgba(201, 24, 74, 0.05), transparent 50%),
                 linear-gradient(135deg, rgba(20, 20, 20, 0.85), rgba(10, 10, 10, 0.95));
-    border-color: rgba(225, 29, 72, 0.3);
+    border-color: rgba(201, 24, 74, 0.3);
     box-shadow: 
         0 30px 70px rgba(0, 0, 0, 0.7),
-        inset 0 0 0 1px rgba(225, 29, 72, 0.1);
+        inset 0 0 0 1px rgba(201, 24, 74, 0.1);
 }
 
 .lab-input-glow:focus-within {
-    border-color: rgba(225, 29, 72, 0.3);
-    box-shadow: 0 0 40px rgba(225, 29, 72, 0.1);
+    border-color: rgba(201, 24, 74, 0.3);
+    box-shadow: 0 0 40px rgba(201, 24, 74, 0.1);
 }
 
 .vault-card {
@@ -213,10 +219,10 @@ body::before {
 }
 
 .type-pill.active {
-    background: rgba(225, 29, 72, 0.3);
-    border-color: rgba(225, 29, 72, 0.6);
+    background: rgba(201, 24, 74, 0.3);
+    border-color: rgba(201, 24, 74, 0.6);
     color: #ffffff;
-    box-shadow: 0 0 30px rgba(225, 29, 72, 0.3);
+    box-shadow: 0 0 30px rgba(201, 24, 74, 0.3);
 }
 
 .page-content {
@@ -248,7 +254,7 @@ body::before {
     border-radius: 10px;
 }
 .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: rgba(225, 29, 72, 0.3);
+    background: rgba(201, 24, 74, 0.3);
 }
 
 
@@ -420,7 +426,7 @@ body.theme-light {
 }
 
 input:checked+.slider {
-    background-color: #e11d48;
+    background-color: #c9184a;
 }
 
 input:checked+.slider:before {
@@ -466,7 +472,15 @@ input:disabled+.slider {
     color: #1e293b !important;
 }
 
-/* Responsive Design */
+/* Responsive Design
+   NOTE: this block previously targeted `.nav-item`/`.ai-container`/`.pl-20` — classes that no
+   longer exist anywhere in the markup (renamed to `.nav-btn`/`#ai-helper` at some point since),
+   so those mobile rules were silently dead. Rewritten below to target what's actually in the DOM
+   now. `.premium-glass`/`h1`/`#export-actions` were still live and are unchanged. `#library-stats`
+   was also live but is now removed here — it forced the Vault header's two stat cards to stack
+   vertically, which is what made that header eat roughly half the mobile viewport before you
+   even reach the exam list; the cards are small enough to sit side by side instead (see the
+   Tailwind classes on #library-stats itself in index.html). */
 @media (max-width: 768px) {
     .premium-glass {
         padding: 1.5rem !important;
@@ -480,21 +494,14 @@ input:disabled+.slider {
         font-size: 2.5rem !important;
     }
 
-    .nav-item span:last-child {
+    /* App-shell nav (#main-nav) — icon-only on mobile so all items fit without relying on the
+       pill's horizontal scroll (still there as a fallback, just no longer the primary way to
+       reach Profile/Logout on a phone). Padding kept generous enough to stay a real tap target. */
+    .nav-btn span:last-child {
         display: none;
     }
-
-    .nav-item {
-        padding: 0.75rem !important;
-    }
-
-    .pl-20 {
-        padding-left: 0 !important;
-        margin-top: 1rem;
-    }
-
-    .flex-grow h4 {
-        font-size: 1.25rem !important;
+    .nav-btn {
+        padding: 0.85rem !important;
     }
 
     #export-actions {
@@ -505,14 +512,14 @@ input:disabled+.slider {
         flex-wrap: wrap;
     }
 
-    .ai-container {
-        bottom: 100px;
-        right: 20px;
-        scale: 0.8;
-    }
-
-    #library-stats {
-        flex-direction: column;
+    /* Small icon-only action buttons (delete-exam card button, various w-10/h-10 modal-close
+       buttons) fall under the ~44px recommended minimum touch target. Grown via min-width/
+       min-height (invisible hit-area only) rather than changing visual padding, so desktop's
+       tighter icon-button look is untouched. */
+    button.p-3:has(> .material-symbols-outlined),
+    button.w-10.h-10 {
+        min-width: 44px;
+        min-height: 44px;
     }
 }
 
@@ -524,9 +531,16 @@ main {
 }
 
 .nav-btn.active {
-    background: #e11d48;
+    /* Same shimmer-on-hover gradient as the landing page's primary CTAs (.btn-brand-gradient),
+       so the app-shell nav's active state matches the marketing site instead of a flat fill. */
+    background-image: linear-gradient(to right, #ff6b8a 0%, #c9184a 51%, #ff6b8a 100%);
+    background-size: 200% auto;
+    transition: background-position 0.5s ease, box-shadow 0.3s ease, transform 0.3s ease;
     color: white;
-    box-shadow: 0 10px 30px rgba(225, 29, 72, 0.4);
+    box-shadow: 0 10px 30px rgba(201, 24, 74, 0.4);
+}
+.nav-btn.active:hover {
+    background-position: right center;
 }
 
 /* AI Helper Character Styling */
@@ -543,9 +557,9 @@ main {
 }
 
 .ai-bubble {
-    background: rgba(225, 29, 72, 0.2);
+    background: rgba(201, 24, 74, 0.2);
     backdrop-filter: blur(20px);
-    border: 1px solid rgba(225, 29, 72, 0.5);
+    border: 1px solid rgba(201, 24, 74, 0.5);
     padding: 16px 24px;
     border-radius: 30px 30px 0 30px;
     max-width: 280px;
@@ -565,7 +579,7 @@ main {
     height: 150px;
     animation: arrowRotate 5s infinite ease-in-out;
     pointer-events: none;
-    filter: drop-shadow(0 0 20px rgba(225, 29, 72, 0.7));
+    filter: drop-shadow(0 0 20px rgba(201, 24, 74, 0.7));
     z-index: 10;
 }
 
@@ -574,7 +588,7 @@ main {
     height: 380px;
     object-fit: contain;
     mix-blend-mode: screen;
-    filter: brightness(1.1) contrast(1.1) drop-shadow(0 0 30px rgba(225, 29, 72, 0.4));
+    filter: brightness(1.1) contrast(1.1) drop-shadow(0 0 30px rgba(201, 24, 74, 0.4));
     image-rendering: auto;
     cursor: pointer;
     transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
@@ -582,6 +596,57 @@ main {
 
 .ai-robot-img:hover {
     transform: scale(1.05);
+}
+
+/* AI helper — a fixed-size 380px character positioned for a wide desktop layout; on a
+   single-column mobile/tablet layout there's no empty margin for it to float in, so at full size
+   it sits directly on top of form fields (Topic input, Student Data, Exam Settings cards) and
+   the bottom-fixed nav/Exam Controls bar. Shrunk in two steps and tucked into the corner instead.
+   (Placed after the base #ai-helper/.ai-robot-img/.ai-bubble rules above on purpose — same
+   specificity, so it needs to come later in the file to actually win at these widths.) */
+@media (max-width: 1023px) {
+    #ai-helper {
+        bottom: 235px;
+        right: 20px;
+        gap: 8px;
+    }
+    .ai-robot-img {
+        width: 160px;
+        height: 160px;
+    }
+    .ai-bubble {
+        max-width: 220px;
+        padding: 12px 18px;
+        font-size: 12px;
+        /* Even tucked into the corner, the bubble can still land over the bottom edge of
+           whatever card happens to be there (Exam Settings cards resize with content/state) —
+           it's purely decorative/informational, so make it click-through rather than chase an
+           exact offset that would break the moment card heights change. The robot avatar itself
+           (its own onclick) is unaffected — pointer-events is only set on the bubble. */
+        pointer-events: none;
+    }
+}
+@media (max-width: 767px) {
+    #ai-helper {
+        bottom: 220px;
+        right: 14px;
+        gap: 6px;
+    }
+    .ai-robot-img {
+        width: 84px;
+        height: 84px;
+    }
+    .ai-bubble {
+        max-width: 168px;
+        padding: 9px 14px;
+        font-size: 10.5px;
+        border-radius: 20px 20px 0 20px;
+    }
+    /* The rotating "look here" arrow SVG is tuned for the desktop character's scale/spacing —
+       at 84px it just points at empty space, so it's hidden rather than repositioned. */
+    .ai-arrow-svg {
+        display: none;
+    }
 }
 
 @keyframes wiggle {
@@ -737,7 +802,7 @@ main {
 }
 
 input:checked + .slider {
-    background-color: #e11d48;
+    background-color: #c9184a;
 }
 
 input:checked + .slider:before {
@@ -754,16 +819,656 @@ input:checked + .slider:before {
 }
 
 .library-mask {
-    mask-image: linear-gradient(to bottom, 
-        transparent 0%, 
-        black 5%, 
-        black 95%, 
+    mask-image: linear-gradient(to bottom,
+        transparent 0%,
+        black 5%,
+        black 95%,
         transparent 100%
     );
-    -webkit-mask-image: linear-gradient(to bottom, 
-        transparent 0%, 
-        black 5%, 
-        black 95%, 
+    -webkit-mask-image: linear-gradient(to bottom,
+        transparent 0%,
+        black 5%,
+        black 95%,
         transparent 100%
     );
+}
+
+/* Primary-button background — brand pink -> rose -> brand pink, shimmering to the opposite end
+   on hover (background-size 200%, shift background-position). Same two hex values as the
+   Tailwind config's primary/primary-container tokens above (#ff6b8a / #c9184a) — kept as a
+   standalone class rather than folded into Tailwind's bg-gradient-to-r utility so each button
+   keeps its own already-tuned padding/radius/sizing classes instead of this needing to own that
+   layout too. (Previously used an off-brand dark-red/near-black pair here — fixed.) */
+.btn-brand-gradient {
+    background-image: linear-gradient(to right, #ff6b8a 0%, #c9184a 51%, #ff6b8a 100%);
+    background-size: 200% auto;
+    transition: background-position 0.5s ease, box-shadow 0.3s ease, transform 0.3s ease;
+}
+.btn-brand-gradient:hover {
+    background-position: right center;
+}
+
+/* Register — Terms & Privacy consent checkbox. CSS-only checkmark (clip-path polygon), no
+   image/icon dependency; pink gradient fill to match the rest of the brand's checked/active
+   states (toggle switches, active nav button, etc). */
+.consent-checkbox-wrap {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    cursor: pointer;
+}
+.consent-checkbox-wrap input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    min-width: 18px;
+    margin-top: 2px;
+    border-radius: 5px;
+    border: 1.5px solid rgba(255, 255, 255, 0.25);
+    background: rgba(255, 255, 255, 0.04);
+    cursor: pointer;
+    display: grid;
+    place-content: center;
+    transition: background 0.2s ease, border-color 0.2s ease;
+}
+.consent-checkbox-wrap input[type="checkbox"]::before {
+    content: "";
+    width: 10px;
+    height: 10px;
+    transform: scale(0);
+    transition: transform 0.15s ease;
+    box-shadow: inset 1em 1em white;
+    clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+}
+.consent-checkbox-wrap input[type="checkbox"]:checked {
+    background: linear-gradient(135deg, #ff6b8a, #c9184a);
+    border-color: #ff6b8a;
+}
+.consent-checkbox-wrap input[type="checkbox"]:checked::before {
+    transform: scale(1);
+}
+.consent-checkbox-wrap input[type="checkbox"]:focus-visible {
+    outline: 2px solid rgba(255, 107, 138, 0.5);
+    outline-offset: 2px;
+}
+.consent-checkbox-wrap a {
+    color: #ff6b8a;
+    text-decoration: underline;
+    text-decoration-color: rgba(255, 107, 138, 0.35);
+    text-underline-offset: 2px;
+}
+.consent-checkbox-wrap a:hover {
+    text-decoration-color: #ff6b8a;
+}
+
+/* ===== Login / Register — two-panel auth layout ===== */
+
+.auth-panel-enter {
+    opacity: 0;
+    transform: translateY(24px);
+    animation: fadeInSlideUp 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+.auth-side-panel {
+    background:
+        radial-gradient(circle at 25% 15%, rgba(251, 113, 133, 0.4), transparent 55%),
+        linear-gradient(160deg, #2a0a13 0%, #0a0305 65%, #050505 100%);
+}
+
+.auth-decor-icon {
+    position: absolute;
+    color: #ffffff;
+    opacity: 0.025;
+    pointer-events: none;
+    z-index: 0;
+}
+
+.auth-field-hint {
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 6px;
+    padding-left: 4px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+.auth-field-hint.is-valid { color: #34d399; }
+.auth-field-hint.is-invalid { color: #f87171; }
+
+@media (prefers-reduced-motion: reduce) {
+    .auth-panel-enter {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+}
+
+/* ===== Landing Hero — centered cinematic composition ===== */
+   Reuses the app's existing accent colors (#ff6b8a / #c9184a) and the same blurred-radial
+   technique as .gradient-sphere/.blob elsewhere, just tuned for a soft multi-stop fade behind
+   the hero content instead of a visible solid-color circle. Scoped entirely to #landing-hero —
+   no other page is touched. */
+
+#landing-hero {
+    position: relative;
+}
+
+.hero-glow {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: min(1100px, 140vw);
+    height: min(680px, 85vh);
+    transform: translate(-50%, -50%);
+    background: radial-gradient(ellipse at center,
+        rgba(251, 113, 133, 0.18) 0%,
+        rgba(201, 24, 74, 0.10) 32%,
+        rgba(201, 24, 74, 0.04) 55%,
+        transparent 75%);
+    filter: blur(50px);
+    pointer-events: none;
+    z-index: 0;
+    animation: heroGlowPulse 13s ease-in-out infinite;
+}
+
+/* On the two-column desktop layout the light should sit behind the product mockup (right
+   column), not dead-center — still centered on mobile/stacked, where there's only one column. */
+@media (min-width: 1024px) {
+    .hero-glow { left: 64%; width: min(1300px, 90vw); }
+}
+
+@keyframes heroGlowPulse {
+    0%, 100% { opacity: 0.85; transform: translate(-50%, -50%) scale(1); }
+    50%      { opacity: 1;    transform: translate(-50%, -50%) scale(1.06); }
+}
+
+/* Barely-visible hairline grid, faded out toward the edges via a mask so it never reads as a
+   hard-edged block — just ambient structure behind the headline. */
+.hero-grid {
+    position: absolute;
+    inset: 0;
+    background-image:
+        linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 64px 64px;
+    mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+    -webkit-mask-image: radial-gradient(ellipse at center, black 0%, transparent 70%);
+    pointer-events: none;
+    z-index: 0;
+}
+
+/* Faint floating "exam paper" outlines — the same rounded-card/thin-border language used by
+   .premium-glass elsewhere, just near-invisible and purely decorative. */
+.hero-decor-card {
+    position: absolute;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 2rem;
+    background: rgba(255, 255, 255, 0.015);
+    pointer-events: none;
+    z-index: 0;
+}
+/* Varied size/rotation/blur/depth so these read as ambient environment rather than a matched
+   set of stickers — some sit behind the product mockup (z-index below it, lightly blurred as if
+   further away), others sit near the viewport edges close to the left-column text (kept clear
+   of the headline itself, per design note: never directly behind copy). */
+.hero-decor-card--1 { width: 220px; height: 140px; top: 12%;  left: 5%;   transform: rotate(-9deg); opacity: 0.7; animation: floatUI 14s ease-in-out infinite; }
+.hero-decor-card--2 { width: 150px; height: 96px;  bottom: 10%; left: 12%; transform: rotate(7deg);  opacity: 0.5; filter: blur(0.5px); animation: floatUI 17s ease-in-out infinite reverse; }
+.hero-decor-card--3 { width: 110px; height: 72px;  top: 8%;   right: 6%;  transform: rotate(5deg);  border-color: rgba(251, 113, 133, 0.12); opacity: 0.55; filter: blur(0.5px); animation: floatUI 12s ease-in-out infinite; z-index: 0; }
+.hero-decor-card--4 { width: 90px;  height: 58px;  bottom: 6%; right: 22%; transform: rotate(-6deg); opacity: 0.4; filter: blur(1px); animation: floatUI 19s ease-in-out infinite reverse; }
+
+.hero-particle {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: rgba(251, 113, 133, 0.5);
+    filter: blur(1px);
+    pointer-events: none;
+    z-index: 0;
+}
+.hero-particle--1 { top: 22%; left: 15%;  animation: floatUI 9s ease-in-out infinite; }
+.hero-particle--2 { bottom: 20%; left: 20%; width: 4px; height: 4px; opacity: 0.6; animation: floatUI 11s ease-in-out infinite reverse; }
+.hero-particle--3 { top: 16%; right: 30%; width: 7px; height: 7px; filter: blur(1.5px); opacity: 0.7; animation: floatUI 10s ease-in-out infinite; }
+.hero-particle--4 { bottom: 34%; right: 8%; width: 4px; height: 4px; opacity: 0.5; animation: floatUI 13s ease-in-out infinite reverse; }
+
+/* ===== Hero product mockup — the "premiere" visual, right column on desktop ===== */
+
+.hero-mockup {
+    position: relative;
+    z-index: 10;
+    opacity: 0;
+    transform: translateY(28px) scale(0.97);
+    /* Entrance once, then an extremely slow continuous drift once it settles — same floatUI
+       keyframe the small stat cards and background decor already use, just a longer duration so
+       a comparatively large element doesn't read as jittery. */
+    animation: heroMockupIn 0.8s cubic-bezier(0.2, 0.8, 0.2, 1) 0.15s forwards,
+               floatUI 10s ease-in-out infinite 0.95s;
+}
+
+@keyframes heroMockupIn {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.hero-mockup-window {
+    background: radial-gradient(circle at top left, rgba(45, 45, 45, 0.5), transparent 45%),
+                linear-gradient(135deg, rgba(16, 16, 16, 0.92), rgba(6, 6, 6, 0.96));
+    backdrop-filter: blur(30px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow:
+        0 40px 100px rgba(0, 0, 0, 0.7),
+        0 0 120px rgba(201, 24, 74, 0.12),
+        inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+}
+
+.hero-mockup-option {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hero-mockup-option--selected {
+    background: rgba(251, 113, 133, 0.14);
+    border-color: rgba(251, 113, 133, 0.5);
+    box-shadow: 0 0 24px rgba(201, 24, 74, 0.15);
+}
+
+.hero-mockup-progress-fill {
+    width: 0%;
+    animation: heroProgressFill 1.1s cubic-bezier(0.2, 0.8, 0.2, 1) 1s forwards;
+}
+@keyframes heroProgressFill {
+    to { width: 35%; }
+}
+
+/* Floating stat cards — enter staggered after the main window, then drift almost
+   imperceptibly (reuses the same floatUI keyframe already used by the background decor). */
+.hero-float-card {
+    position: absolute;
+    z-index: 20;
+    opacity: 0;
+    transform: translateY(18px) scale(0.95);
+    animation: heroCardIn 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) forwards, floatUI 8s ease-in-out infinite;
+    animation-delay: var(--card-delay, 0.4s), calc(var(--card-delay, 0.4s) + 0.6s);
+}
+
+@keyframes heroCardIn {
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Anchoring treatment for the two stat cards overlapping the mockup's corners — a rose-tinted
+   glow + slightly stronger border so they read as attached to the card, not randomly floating
+   near its edge. Consistent -6 offset on both (see index.html) reinforces the same idea. */
+.hero-float-card--anchored {
+    border-color: rgba(251, 113, 133, 0.18) !important;
+    box-shadow:
+        0 20px 45px rgba(0, 0, 0, 0.55),
+        0 0 0 1px rgba(251, 113, 133, 0.08),
+        0 0 30px rgba(201, 24, 74, 0.15);
+}
+
+/* ===== Hero mouse parallax =====
+   #landing-hero sets --mx/--my (both roughly -0.5..0.5) via JS on mousemove; every layer reacts
+   at a different multiplier so nearer elements (the mockup) move less than distant background
+   decor — the classic parallax depth cue. Transform-only, so it's compositor-friendly. */
+#landing-hero { --mx: 0; --my: 0; }
+.hero-glow        { transition: transform 0.4s ease-out; }
+#landing-hero:hover .hero-glow { transform: translate(calc(-50% + var(--mx) * 24px), calc(-50% + var(--my) * 24px)); }
+.hero-decor-card, .hero-particle { transition: transform 0.5s ease-out; }
+#landing-hero:hover .hero-decor-card { transform: translate(calc(var(--mx) * 14px), calc(var(--my) * 14px)) rotate(var(--rot, 0deg)); }
+#landing-hero:hover .hero-particle   { transform: translate(calc(var(--mx) * 22px), calc(var(--my) * 22px)); }
+.hero-mockup { transition: transform 0.35s ease-out; }
+#landing-hero:hover .hero-mockup { transform: translate(calc(var(--mx) * 6px), calc(var(--my) * 6px)); }
+
+/* ===== Hero simulated question-demo crossfade ===== */
+.hero-mock-fade { transition: opacity 0.35s ease, transform 0.35s ease; }
+.hero-mock-fade--out { opacity: 0; transform: translateY(6px); }
+.hero-mock-correct-badge { transition: opacity 0.3s ease, transform 0.3s ease; transform: scale(0.9); }
+.hero-mock-correct-badge.is-visible { opacity: 1 !important; transform: scale(1); }
+
+/* ===== Scroll reveal (IntersectionObserver-driven, see landing.js) ===== */
+.reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s cubic-bezier(0.2, 0.8, 0.2, 1), transform 0.7s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.reveal.reveal-in { opacity: 1; transform: translateY(0); }
+/* Stagger via a small delay ladder — apply .reveal-1 / .reveal-2 / .reveal-3 alongside .reveal */
+.reveal-1.reveal-in { transition-delay: 0.08s; }
+.reveal-2.reveal-in { transition-delay: 0.16s; }
+.reveal-3.reveal-in { transition-delay: 0.24s; }
+.reveal-4.reveal-in { transition-delay: 0.32s; }
+
+/* How-It-Works' four steps — centralized so the number/label/description/card can never drift
+   out of sync between steps again (previously each step repeated its own copy of these classes
+   inline in the HTML). */
+.step-number {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 1rem;
+    background: rgba(251, 113, 133, 0.1);
+    border: 1px solid rgba(251, 113, 133, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #ff6b8a;
+    font-size: 1.5rem;
+    line-height: 1;
+    font-weight: 900;
+    flex-shrink: 0;
+}
+.step-label {
+    font-size: 1.125rem;
+    font-weight: 900;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+}
+.step-desc {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 13px;
+    line-height: 1.6;
+}
+.step-card {
+    min-height: 128px;
+}
+
+/* How-It-Works connecting line — a static track that fills in once its wrapping .reveal
+   becomes visible, giving a sense of "progression" without true scroll-scrubbing. */
+.hero-connector-line [data-line-fill] {
+    transform: scaleX(0);
+    transition: transform 1.4s cubic-bezier(0.2, 0.8, 0.2, 1) 0.3s;
+}
+.hero-connector-line.reveal-in [data-line-fill] {
+    transform: scaleX(1);
+}
+
+/* Why-UstadExam transformation line — each word swaps from its dim "old way" label to a bright
+   rose "UstadExam way" label once, staggered, when the section scrolls into view. */
+.transform-word {
+    display: inline-block;
+    transition: color 0.5s ease, transform 0.4s ease;
+}
+.transform-word.is-transformed {
+    color: #ff6b8a;
+    transform: translateY(-1px);
+}
+
+/* FAQ accordion — grid-template-rows 0fr/1fr trick: animates height without ever measuring
+   pixel height in JS, and without `display:none` (which can't transition). The inner div clips
+   overflow during the tween; toggleFaq() in landing.js just flips `is-open`. */
+.faq-answer-wrap {
+    display: grid;
+    grid-template-rows: 0fr;
+    transition: grid-template-rows 0.28s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.faq-answer-wrap.is-open {
+    grid-template-rows: 1fr;
+}
+.faq-answer-inner {
+    overflow: hidden;
+}
+.faq-item {
+    border-color: rgba(255, 255, 255, 0.05);
+    transition: border-color 0.25s ease, background-color 0.25s ease;
+}
+.faq-item:hover {
+    border-color: rgba(255, 107, 138, 0.25);
+}
+.faq-item--open {
+    border-color: rgba(255, 107, 138, 0.3);
+    background-color: rgba(255, 107, 138, 0.04);
+    border-left: 2px solid #ff6b8a;
+}
+.faq-chevron {
+    /* transform is a no-op on non-replaced inline boxes (a bare <span>), so this needs to be
+       at least inline-block for the rotate() below to actually take effect. */
+    display: inline-block;
+    color: rgba(255, 255, 255, 0.4);
+    transition: transform 0.2s ease, color 0.2s ease;
+}
+/* Element-qualified selector so this beats Tailwind's `.text-white/40` on specificity — the
+   Tailwind CDN script injects its stylesheet at runtime, after style.css, so a same-specificity
+   class-vs-class rule would otherwise lose the cascade-order tie regardless of source order here. */
+span.faq-chevron.faq-chevron--open {
+    color: #ff6b8a;
+    transform: rotate(180deg);
+}
+
+/* Final CTA — two soft glowing rings bleeding off the section edges, echoing the hero's
+   radial glow. Kept behind the content (z-index 0 vs the text wrapper's z-10) and low-opacity
+   so the headline stays the clear focal point. */
+.cta-glow-ring {
+    position: absolute;
+    top: 50%;
+    width: 34rem;
+    height: 34rem;
+    border-radius: 50%;
+    transform: translateY(-50%);
+    background: radial-gradient(circle, transparent 38%, rgba(255, 107, 138, 0.28) 47%, rgba(201, 24, 74, 0.14) 58%, transparent 68%);
+    filter: blur(30px);
+    pointer-events: none;
+    z-index: 0;
+}
+.cta-glow-ring--left { left: -14rem; }
+.cta-glow-ring--right { right: -14rem; }
+@media (max-width: 767px) {
+    .cta-glow-ring { width: 20rem; height: 20rem; }
+    .cta-glow-ring--left { left: -10rem; }
+    .cta-glow-ring--right { right: -10rem; }
+}
+
+/* About — founder card, take 2: asymmetric and personality-first. A rotated pink gradient
+   block sits offset behind the photo (peeking out top-left, "breaking out" of frame rather
+   than a centered halo), paired with a casual hand-signed greeting instead of a job title. */
+.founder-card {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+    align-items: center;
+    max-width: 760px;
+    margin: 0 auto;
+    text-align: center;
+}
+@media (min-width: 768px) {
+    .founder-card {
+        grid-template-columns: 260px 1fr;
+        gap: 3.5rem;
+        text-align: left;
+    }
+}
+.founder-photo-block {
+    position: relative;
+    width: 240px;
+    height: 240px;
+    margin: 0 auto;
+}
+@media (min-width: 768px) {
+    .founder-photo-block { margin: 0; }
+}
+.founder-photo-block::before {
+    content: '';
+    position: absolute;
+    top: -20px;
+    left: -20px;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #ff6b8a, #c9184a);
+    border-radius: 28px;
+    transform: rotate(-7deg);
+    box-shadow: 0 25px 60px rgba(201, 24, 74, 0.4);
+    z-index: 0;
+}
+.founder-card-photo {
+    position: relative;
+    z-index: 1;
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 24px;
+    box-shadow: 0 20px 45px rgba(0, 0, 0, 0.55);
+}
+.founder-doodle-star {
+    position: absolute;
+    top: -14px;
+    right: -10px;
+    z-index: 2;
+    font-size: 2rem;
+    line-height: 1;
+    color: #ff6b8a;
+    transform: rotate(12deg);
+    text-shadow: 0 0 16px rgba(255, 107, 138, 0.6);
+}
+.founder-card-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+@media (min-width: 768px) {
+    .founder-card-content { align-items: flex-start; }
+}
+.founder-greeting {
+    font-size: 1.75rem;
+    font-weight: 900;
+    line-height: 1.15;
+    color: #ffffff;
+    letter-spacing: -0.01em;
+}
+.founder-signature {
+    font-family: 'Caveat', 'Inter', cursive;
+    font-weight: 700;
+    font-size: 2.75rem;
+    color: #ff6b8a;
+    line-height: 1;
+    display: inline-block;
+    transform: rotate(-2deg);
+}
+.founder-swash {
+    width: 110px;
+    height: 14px;
+    margin: -0.25rem 0 0.25rem;
+    opacity: 0.7;
+}
+.founder-role {
+    font-size: 0.85rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: rgba(255, 255, 255, 0.6);
+}
+.founder-dot {
+    color: #ff6b8a;
+    margin: 0 0.15em;
+}
+
+/* Legal pages (Privacy/Terms/etc, see legal.js) — plain, readable prose. Deliberately not
+   Tailwind-utility-per-element since the body is injected as one HTML blob from LEGAL_PAGES. */
+.legal-body {
+    color: rgba(255, 255, 255, 0.65);
+    font-size: 15px;
+    line-height: 1.8;
+}
+.legal-body h2 {
+    color: #ffffff;
+    font-size: 1.3rem;
+    font-weight: 900;
+    letter-spacing: -0.01em;
+    margin-top: 2.5rem;
+    margin-bottom: 0.85rem;
+}
+.legal-body h2:first-child { margin-top: 0; }
+.legal-body p { margin-bottom: 1rem; }
+.legal-body ul { list-style: disc; padding-left: 1.4rem; margin: 0 0 1.25rem; }
+.legal-body li { margin-bottom: 0.45rem; }
+.legal-body a { color: #ff6b8a; text-decoration: underline; text-decoration-color: rgba(255, 107, 138, 0.35); text-underline-offset: 3px; transition: text-decoration-color 0.2s ease; }
+.legal-body a:hover { text-decoration-color: #ff6b8a; }
+
+/* Legal — sidebar nav (desktop: sticky left column; mobile: collapsed behind the "Sections"
+   toggle button, see #legal-mobile-toggle in index.html). Active-state treatment reuses the
+   same left-border + tinted-background language as the FAQ's open-item state (.faq-item--open)
+   for consistency rather than inventing a new "active" pattern. */
+.legal-nav-item {
+    display: block;
+    padding: 0.65rem 0.9rem;
+    border-radius: 0.75rem;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.5);
+    border-left: 2px solid transparent;
+    transition: color 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+}
+.legal-nav-item:hover {
+    color: #ffffff;
+    background: rgba(255, 255, 255, 0.04);
+}
+.legal-nav-item.active {
+    color: #ff6b8a;
+    background: rgba(255, 107, 138, 0.06);
+    border-left-color: #ff6b8a;
+    font-weight: 900;
+}
+@media (max-width: 767px) {
+    #legal-sidebar.mobile-open {
+        display: flex !important;
+        /* The sidebar's own flex-direction:column only kicks in at the md: breakpoint (it's a
+           Tailwind md:flex-col class) — below that, overriding `hidden` to `flex` would
+           otherwise default to row and wrap the items into a pill row instead of a dropdown
+           list, so it's set explicitly here. */
+        flex-direction: column;
+        margin-bottom: 1.5rem;
+        background: rgba(255, 255, 255, 0.02);
+        border: 1px solid rgba(255, 255, 255, 0.05);
+        border-radius: 1.25rem;
+        padding: 0.75rem;
+    }
+}
+
+/* ===== SVG chart "draw itself in" (stroke-dashoffset technique, see landing.js) ===== */
+.chart-draw-path {
+    stroke-dasharray: 600;
+    stroke-dashoffset: 600;
+    transition: stroke-dashoffset 1.6s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.chart-draw-path.chart-draw-in { stroke-dashoffset: 0; }
+
+@media (prefers-reduced-motion: reduce) {
+    .hero-glow,
+    .hero-decor-card--1,
+    .hero-decor-card--2,
+    .hero-decor-card--3,
+    .hero-decor-card--4,
+    .hero-particle--1,
+    .hero-particle--2,
+    .hero-particle--3,
+    .hero-particle--4 {
+        animation: none;
+    }
+    .hero-mockup,
+    .hero-headline {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+    .hero-mockup-progress-fill {
+        animation: none;
+        width: 35%;
+    }
+    .hero-float-card {
+        animation: none;
+        opacity: 1;
+        transform: none;
+    }
+    .hero-glow, .hero-decor-card, .hero-particle, .hero-mockup {
+        transition: none !important;
+        transform: none !important;
+    }
+    .reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+    .chart-draw-path {
+        stroke-dashoffset: 0;
+        transition: none;
+    }
 }

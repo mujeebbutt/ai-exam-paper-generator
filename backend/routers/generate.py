@@ -1,5 +1,6 @@
 from fastapi import APIRouter, HTTPException, Depends
-from models.schemas import GenerateRequest
+from routers.auth import get_current_user_optional
+from models.schemas import GenerateRequest, SectionConfig, BrandingInfo, StudentInfo
 from services.vector_store import VectorStore
 from services.llm_service import LLMService
 from services.ocr_service import OCRService
@@ -25,7 +26,8 @@ llm_service = LLMService()
 _request_timestamps = {}
 
 @router.post("/generate")
-async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db)):
+async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db),
+                         current_user: models.User = Depends(get_current_user_optional)):
     """
     Single-phase AI generation with dynamic sections and strict counts.
     """
@@ -42,22 +44,27 @@ async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db))
         raise HTTPException(status_code=400, detail="No questions requested.")
 
     # ── 2. Caching System: Check if exact same request was already generated ──
-    existing_exam = db.query(models.Exam).filter(models.Exam.session_id == request.session_id).order_by(models.Exam.id.desc()).first()
-    if existing_exam and existing_exam.questions_data:
-        try:
-            cached_sections = existing_exam.sections or []
-            req_sections = [s.dict() for s in request.sections]
-            if str(cached_sections) == str(req_sections):
-                logging.info("CACHE HIT: Returning previously generated exam for this session.")
-                return {
-                    "session_id": existing_exam.session_id,
-                    "subject": existing_exam.subject,
-                    "question_count": len(existing_exam.questions_data),
-                    "questions": existing_exam.questions_data,
-                    "cached": True
-                }
-        except Exception:
-            pass
+    # Skipped for regenerate requests (force_regenerate=True) — those exist specifically to
+    # produce a NEW set of questions on the same session, so handing back the cached exam
+    # unchanged would defeat the point.
+    if not request.force_regenerate:
+        existing_exam = db.query(models.Exam).filter(models.Exam.session_id == request.session_id).order_by(models.Exam.id.desc()).first()
+        if existing_exam and existing_exam.questions_data:
+            try:
+                cached_sections = existing_exam.sections or []
+                req_sections = [s.dict() for s in request.sections]
+                if str(cached_sections) == str(req_sections):
+                    logging.info("CACHE HIT: Returning previously generated exam for this session.")
+                    return {
+                        "session_id": existing_exam.session_id,
+                        "subject": existing_exam.subject,
+                        "question_count": len(existing_exam.questions_data),
+                        "questions": existing_exam.questions_data,
+                        "exam_id": existing_exam.id,
+                        "cached": True
+                    }
+            except Exception:
+                pass
 
     # ── 3. Extract text & images ──────────────────────────────────────────────
     full_text, images = OCRService.process_session_files(request.session_id)
@@ -83,7 +90,7 @@ async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db))
     # ── 5. MOCK MODE ──────────────────────────────────────────────────────────
     if llm_service.mock_mode:
         logging.info("MOCK MODE: skipping AI generation")
-        return await _mock_generation(request, context_text, db)
+        return await _mock_generation(request, context_text, db, current_user)
 
     try:
         # ── 6. Single-Phase Question Generation (ONE API CALL) ────────────────
@@ -99,10 +106,11 @@ async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db))
                 
         structure_instruction = "\n".join(structure_parts)
 
-        gen_prompt = PromptTemplates.CONSOLIDATED_PROMPT_TEMPLATE.format(
+        gen_prompt = PromptTemplates.build_generation_prompt(
             context=context_text or "See attached images",
             difficulty=request.difficulty,
-            structure_instruction=structure_instruction
+            structure_instruction=structure_instruction,
+            avoid_questions=request.avoid_questions,
         )
 
         response_json = await llm_service.generate_response(
@@ -188,6 +196,7 @@ async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db))
             long_marks = next((s.marks for s in request.sections if s.type.lower() == 'long'), 10)
             
             new_exam = models.Exam(
+                user_id=current_user.id if current_user else None,
                 session_id=request.session_id,
                 title=request.exam_title,
                 subject=final_subject,
@@ -204,14 +213,18 @@ async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db))
             )
             db.add(new_exam)
             db.commit()
+            db.refresh(new_exam)
+            new_exam_id = new_exam.id
         except Exception as e:
             logging.error(f"Database save error: {e}")
+            new_exam_id = None
 
         return {
             "session_id": request.session_id,
             "subject": final_subject,
             "question_count": len(final_questions),
             "questions": final_questions,
+            "exam_id": new_exam_id,
         }
 
     except HTTPException:
@@ -220,7 +233,60 @@ async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db))
         logging.error(f"Generation error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
 
-async def _mock_generation(request: GenerateRequest, context_text: str, db: Session):
+@router.post("/exams/{exam_id}/regenerate")
+async def regenerate_similar_exam(exam_id: int, db: Session = Depends(get_db),
+                                   current_user: models.User = Depends(get_current_user_optional)):
+    """
+    Practice mode: generates a fresh set of questions on the same source material/topic as an
+    existing exam, explicitly steered away from repeating the original questions (see
+    PromptTemplates.build_generation_prompt's avoid_questions block). Reuses the exact same
+    generation pipeline as POST /generate by calling generate_exam() directly, rather than
+    duplicating any of its caching/parsing/validation/DB-save logic here.
+    """
+    original = db.query(models.Exam).filter(models.Exam.id == exam_id).first()
+    if not original:
+        raise HTTPException(status_code=404, detail="Exam not found.")
+    if not original.questions_data:
+        raise HTTPException(status_code=400, detail="This exam has no questions to base a practice set on.")
+    if not original.session_id:
+        raise HTTPException(status_code=400, detail="This exam has no source material session to regenerate from.")
+
+    type_counts = {"mcq": 0, "short": 0, "long": 0}
+    for q in original.questions_data:
+        q_type = (q.get("type") or "").lower()
+        if q_type in type_counts:
+            type_counts[q_type] += 1
+
+    marks_by_type = {"mcq": original.mcq_marks or 1, "short": original.short_marks or 4, "long": original.long_marks or 10}
+    descriptions = {"mcq": "Multiple Choice", "short": "Short Answer", "long": "Long Answer"}
+    sections = [
+        SectionConfig(type=q_type, count=count, marks=marks_by_type[q_type], description=descriptions[q_type])
+        for q_type, count in type_counts.items() if count > 0
+    ]
+    if not sections:
+        raise HTTPException(status_code=400, detail="Could not determine the original exam's question structure.")
+
+    difficulty = original.questions_data[0].get("difficulty", "medium")
+    avoid_questions = [q.get("question", "") for q in original.questions_data if q.get("question")]
+
+    practice_request = GenerateRequest(
+        session_id=original.session_id,
+        sections=sections,
+        difficulty=difficulty,
+        topic=original.subject,
+        time_limit=original.time_limit or "2 Hours",
+        passing_percentage=original.passing_percentage or 40,
+        exam_title=f"{original.title or 'Exam'} — Practice Set",
+        branding=BrandingInfo(**original.branding) if original.branding else None,
+        student_info=StudentInfo(**original.student_info) if original.student_info else None,
+        avoid_questions=avoid_questions,
+        force_regenerate=True,
+    )
+
+    return await generate_exam(practice_request, db, current_user)
+
+
+async def _mock_generation(request: GenerateRequest, context_text: str, db: Session, current_user: models.User = None):
     """Mock mode generation."""
     from services.llm_service import LLMService as _LLM
     _svc = llm_service
@@ -247,6 +313,7 @@ async def _mock_generation(request: GenerateRequest, context_text: str, db: Sess
         long_marks = next((s.marks for s in request.sections if s.type.lower() == 'long'), 10)
         
         new_exam = models.Exam(
+            user_id=current_user.id if current_user else None,
             session_id=request.session_id,
             title=request.exam_title,
             subject=final_subject,
@@ -263,12 +330,16 @@ async def _mock_generation(request: GenerateRequest, context_text: str, db: Sess
         )
         db.add(new_exam)
         db.commit()
+        db.refresh(new_exam)
+        new_exam_id = new_exam.id
     except Exception as e:
         logging.error(f"Mock DB save error: {e}")
+        new_exam_id = None
 
     return {
         "session_id": request.session_id,
         "subject": final_subject,
         "question_count": len(final_questions),
         "questions": final_questions,
+        "exam_id": new_exam_id,
     }

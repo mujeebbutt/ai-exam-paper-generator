@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from db.database import engine, Base
-from routers import upload, generate, export, bank
+from routers import upload, generate, export, bank, attempts, auth
 from fastapi.staticfiles import StaticFiles
 import os
 import logging
@@ -11,7 +11,7 @@ logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
 # Create DB tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="AI Exam Generator", version="1.0.0")
+app = FastAPI(title="UstadExam", version="1.0.0")
 
 # Configure CORS for Vanilla JS frontend
 app.add_middleware(
@@ -27,6 +27,8 @@ app.include_router(upload.router, prefix="/api", tags=["Upload"])
 app.include_router(generate.router, prefix="/api", tags=["Generate"])
 app.include_router(export.router, prefix="/api", tags=["Export"])
 app.include_router(bank.router, prefix="/api", tags=["Bank"])
+app.include_router(attempts.router, prefix="/api", tags=["Attempts"])
+app.include_router(auth.router, prefix="/api", tags=["Auth"])
 
 # Serve static files (for logos, etc.)
 os.makedirs("static", exist_ok=True)
@@ -34,7 +36,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 
 @app.get("/")
 async def root():
-    return {"message": "AI Exam Generator API is running locally via FastAPI"}
+    return {"message": "UstadExam API is running locally via FastAPI"}
 
 if __name__ == "__main__":
     import uvicorn

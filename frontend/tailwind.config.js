@@ -5,12 +5,12 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        "primary-container": "#e11d48",
+        "primary-container": "#c9184a",
         "background": "#050505",
         "surface": "#121212",
         "on-surface": "#ffffff",
         "on-surface-variant": "#a1a1aa",
-        "primary": "#fb7185",
+        "primary": "#ff6b8a",
       },
       animation: {
         fadeIn: 'fadeIn 0.5s ease-out forwards',
