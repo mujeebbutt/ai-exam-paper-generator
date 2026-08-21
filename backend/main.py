@@ -44,9 +44,27 @@ app.include_router(auth.router, prefix="/api", tags=["Auth"])
 os.makedirs("static", exist_ok=True)
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
-@app.get("/")
-async def root():
+# Was at "/" — moved so the frontend can be served there instead. Kept under /api for consistency
+# with every other route in this file.
+@app.get("/api/status")
+async def status():
     return {"message": "UstadExam API is running in production (Railway)"}
+
+# Serve the frontend (plain HTML/CSS/JS, no build step) so ustadexam.com/ loads the actual UI
+# instead of this API. Requires Railway's service Root Directory to be the repo root (not
+# backend/), so frontend/ is actually present in the build alongside this file's parent
+# directory — see railway.json at the repo root for the resulting build/start commands, which
+# `cd backend` before running so everything else (relative "static" mount above, etc.) still
+# resolves the same as before. If the directory really is missing (e.g. Root Directory reverted
+# to backend/), StaticFiles raises at startup rather than silently serving nothing.
+#
+# Registered last and mounted at "/" on purpose: Starlette matches routes/mounts in registration
+# order, and a mount at "/" matches any path — placed earlier, it would shadow /api/*, /static/*,
+# and /api/status above. html=True makes it serve frontend/index.html for "/" (and for any
+# directory-index request), so no change needed on the frontend side.
+BACKEND_DIR = os.path.dirname(os.path.abspath(__file__))
+FRONTEND_DIR = os.path.join(BACKEND_DIR, "..", "frontend")
+app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
 
 if __name__ == "__main__":
     import uvicorn

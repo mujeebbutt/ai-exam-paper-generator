@@ -1,0 +1,6 @@
+# Thin pointer at the repo root — the real dependency list lives in backend/requirements.txt.
+# Exists so Railway/Nixpacks's own file-based provider detection recognizes this as a Python
+# project once the service's Root Directory is the repo root (needed so the build also has
+# access to frontend/, which main.py now serves as static files — see railway.json for the
+# actual install/start commands, which this file doesn't replace).
+-r backend/requirements.txt
