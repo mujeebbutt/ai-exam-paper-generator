@@ -1,9 +1,46 @@
 from fastapi import FastAPI
+import os
+import sentry_sdk
+
+# No settings/config module exists in this project (checked) — every other env var here
+# (JWT_SECRET_KEY, GEMINI_API_KEY, DATABASE_URL, ALLOWED_ORIGINS, ...) is read via a plain
+# os.getenv() where it's needed, so this matches that established convention rather than
+# introducing a new pattern for just this one value. Shared by both sentry_sdk.init()'s
+# `environment` below and the /sentry-debug gate further down, so the two can't drift out of
+# sync with each other (e.g. Sentry labeling events "production" while the debug route is still
+# reachable, or vice versa) — one variable, read once.
+ENVIRONMENT = os.getenv("ENVIRONMENT", "development")
+
+# Must run before the FastAPI app is created — this is what lets Sentry's integration patch
+# FastAPI/Starlette internals to auto-capture unhandled exceptions from every route.
+#
+# DSN hardcoded here per Sentry's own setup docs (a DSN is safe to expose publicly — it's
+# write-only, good for sending events to this project, not for reading anything back — the same
+# value Sentry has you drop directly into client-side JS in their browser SDK). Since this file
+# only ever runs server-side, it's not even exposed to visitors the way a frontend DSN would be.
+# The one non-security reason to move it to an env var later: local dev runs (and there are a lot
+# of them in this project's workflow) will now also report to this same Sentry project, mixing
+# dev/test noise in with real production errors. An env var would let local runs point at a
+# separate Sentry project or unset it entirely — worth doing if that noise becomes annoying, not
+# a security concern either way.
+sentry_sdk.init(
+    dsn="https://26cfde07d5f5d523f429913f2c543502@o4511954243354624.ingest.us.sentry.io/4511954248400896",
+    send_default_pii=True,
+    # 1.0 = trace every request. Fine (even desirable) at low traffic: it means zero missed
+    # visibility while there's little volume to miss. This only affects performance/transaction
+    # tracing, not error capture — errors are always reported regardless of this value. Dial it
+    # down (e.g. 0.1) once real traffic/cost makes full tracing wasteful; you won't lose any error
+    # reports by doing so, only some of the performance-trace detail.
+    traces_sample_rate=1.0,
+    # Was hardcoded nowhere before (unset) — now tags every event with which deployment sent it,
+    # so "development"/"production" events aren't mixed together in the Sentry dashboard.
+    environment=ENVIRONMENT,
+)
+
 from fastapi.middleware.cors import CORSMiddleware
 from db.database import engine, Base
 from routers import upload, generate, export, bank, attempts, auth
 from fastapi.staticfiles import StaticFiles
-import os
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
@@ -49,6 +86,20 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 @app.get("/api/status")
 async def status():
     return {"message": "UstadExam API is running in production (Railway)"}
+
+# ============================================================================
+# TEMPORARY — Sentry verification route. Delete this once you've confirmed the
+# test error actually shows up in the Sentry dashboard. Anyone can hit this
+# and it does nothing useful once verified — don't leave it in production.
+#
+# Gated on ENVIRONMENT so it's unreachable (never even registered as a route —
+# not just hidden/disabled) whenever ENVIRONMENT=production. Still worth
+# deleting once verified rather than leaning on this gate long-term.
+# ============================================================================
+if ENVIRONMENT != "production":
+    @app.get("/sentry-debug")
+    async def trigger_error():
+        division_by_zero = 1 / 0
 
 # Serve the frontend (plain HTML/CSS/JS, no build step) so ustadexam.com/ loads the actual UI
 # instead of this API. Requires Railway's service Root Directory to be the repo root (not
