@@ -10,7 +10,12 @@ class VectorStore:
         # Portable path consistent with database.py / upload.py / ocr_service.py:
         # resolved from __file__, independent of the working directory the server is launched from.
         BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # backend/
-        self.db_path = os.path.join(BASE_DIR, "data", "chroma_db")
+        default_path = os.path.join(BASE_DIR, "data", "chroma_db")
+        # Same ephemeral-filesystem problem as the SQLite DB: this needs to live on a mounted
+        # Railway Volume in production, or it's wiped on every redeploy. Configurable via
+        # CHROMA_PERSIST_DIR instead of hardcoded, so it can point at the volume's mount path;
+        # falls back to the local dev path when unset.
+        self.db_path = os.environ.get("CHROMA_PERSIST_DIR", default_path)
         os.makedirs(self.db_path, exist_ok=True)
         self.client = chromadb.PersistentClient(path=self.db_path)
         
