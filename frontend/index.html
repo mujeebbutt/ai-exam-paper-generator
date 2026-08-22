@@ -543,6 +543,10 @@
                              only). Free tier being genuinely free with no payment step at all is
                              a real, verifiable claim. -->
                         <span class="text-white/30 text-[11px] font-bold">Free to start &middot; No credit card required</span>
+                        <!-- Same reasoning as the nav link above: returning users land here first
+                             (it's the hero), same "Already have an account?" phrasing already
+                             used on Register's own footer link, just repeated where it's needed. -->
+                        <span class="text-white/30 text-[11px] font-bold -mt-2 block">Already have an account? <a href="javascript:void(0)" onclick="window.switchPage('login')" class="text-primary font-black hover:brightness-110 transition-all">Login</a></span>
 
                         <div class="flex flex-wrap items-center justify-center lg:justify-start gap-x-6 gap-y-3 text-xs font-black uppercase tracking-[0.2em] text-white/40 pt-6 mt-2 border-t border-white/5 w-full">
                             <span class="inline-flex items-center gap-2"><span class="material-symbols-outlined text-base text-primary/70">auto_awesome</span>AI-Powered Generation</span>
@@ -1626,6 +1630,9 @@
                 <button data-section-link="faq" onclick="window.scrollToSection('faq')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">FAQ</button>
             </div>
             <button onclick="window.tryUstadExam()" class="px-6 py-3 rounded-full btn-brand-gradient text-white font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all whitespace-nowrap">Try UstadExam</button>
+            <!-- Returning users shouldn't have to go through Try UstadExam first, then switch to
+                 Login from there — a direct link right after it. -->
+            <button onclick="window.switchPage('login')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors whitespace-nowrap">Login</button>
         </div>
     </header>
 
