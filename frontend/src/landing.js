@@ -249,7 +249,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clearTimeout(heroGenTimer);
         heroTimer = null;
     }
-    // Exposed so main.js's switchPage() can start/stop the loop as the visitor navigates to and
+    // Exposed so generate.js's switchPage() can start/stop the loop as the visitor navigates to and
     // away from Landing, rather than letting an interval run forever in the background.
     window.startLandingHero = startHeroCycle;
     window.stopLandingHero = stopHeroCycle;

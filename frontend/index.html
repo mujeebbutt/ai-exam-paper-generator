@@ -1315,7 +1315,7 @@
         <!-- PAGE: LEGAL — one shared shell reused for all 9 legal documents (Privacy, Terms,
              Refund Policy, AI Disclaimer, Acceptable Use, Cookie Policy, Copyright Policy,
              Disclaimer, Legal & Contact). window.showLegalPage(slug) (legal.js) fills in the
-             title/updated-date/body from LEGAL_PAGES before activating this page — see main.js's
+             title/updated-date/body from LEGAL_PAGES before activating this page — see generate.js's
              `pages` dict, where all 9 slugs map to this same element. -->
         <div id="page-legal" class="page-content pt-8">
             <div class="flex-grow overflow-y-auto custom-scrollbar pb-[300px]">
@@ -1621,7 +1621,7 @@
 
     <!-- Landing-page header — same floating-pill treatment as #main-nav below (rounded, glassy,
          centered, fixed top-6 — not edge-to-edge), just with marketing section links instead of
-         app nav buttons. Shown only while #page-landing is active, toggled in main.js's
+         app nav buttons. Shown only while #page-landing is active, toggled in generate.js's
          switchPage(). Logo asset is logo-icon.png, cropped+made-transparent from the root
          logo.png — same rose/white palette as the rest of the app, nothing new introduced. -->
     <header id="landing-nav" style="display:none;"
@@ -1648,7 +1648,7 @@
     <!-- Login/Register only — a minimal standalone icon button back to the public Landing page,
          instead of cramming a "Back" pill into the app-shell nav (which looked cluttered next to
          Login/Register there, and overflowed on mobile). Toggled opposite #main-nav in
-         main.js's switchPage(). -->
+         generate.js's switchPage(). -->
     <button id="auth-back-btn" onclick="window.switchPage('landing')" style="display:none;"
         class="fixed top-6 left-6 z-[200] w-14 h-14 rounded-full bg-surface/90 backdrop-blur-3xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.7)] flex items-center justify-center text-white/60 hover:text-white hover:border-primary/30 transition-all">
         <span class="material-symbols-outlined text-2xl">arrow_back</span>
@@ -1791,7 +1791,7 @@
     <script src="src/core/auth.js"></script>
     <script src="src/core/ui.js"></script>
     <script src="src/core/legal.js"></script>
-    <script src="src/main.js"></script>
+    <script src="src/pages/generate.js"></script>
     <script src="src/attempt.js"></script>
     <script src="src/profile.js"></script>
     <script src="src/integrity.js"></script>
@@ -1823,7 +1823,7 @@
                 <div class="flex items-center gap-4">
                     <div id="export-actions" class="flex items-center gap-4">
                         <!-- Take Exam — the actual student flow (in-app attempt + AI grading),
-                             role-styled by updatePreviewTakeExamButton() in main.js: bold
+                             role-styled by updatePreviewTakeExamButton() in generate.js: bold
                              gradient/primary for students, ghost/secondary for teachers.
                              Hidden until an exam_id actually exists to attempt. -->
                         <button id="btn-take-exam-preview" onclick="window.takeExamFromPreview()"

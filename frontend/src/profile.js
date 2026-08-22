@@ -3,8 +3,8 @@
 // and the "My Learning Progress" dashboard (score chart, weak topics, attempt history — the
 // Phase 3 dashboard, previously migrated onto this page) now live on the Library page instead,
 // per "Profile is about the account, Library is about the papers." See renderLibraryProgress()
-// below, called from main.js's loadVault().
-// Requires auth: see auth.js's requireAuthForPage(), enforced in main.js's switchPage().
+// below, called from generate.js's loadVault().
+// Requires auth: see auth.js's requireAuthForPage(), enforced in generate.js's switchPage().
 
 document.addEventListener('DOMContentLoaded', () => {
 

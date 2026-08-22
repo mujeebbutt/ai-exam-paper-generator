@@ -1,5 +1,5 @@
 // Exam-Taking & AI Grading Controller
-// Mirrors main.js's structure/conventions: a state object, DOM-driven rendering
+// Mirrors generate.js's structure/conventions: a state object, DOM-driven rendering
 // into fixed containers, and window.-exposed handlers for inline onclick/onchange.
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -637,7 +637,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- View: Results ---
 
     // Reuses the app's existing collapse/expand idiom (see .dropdown-trigger/.dropdown-menu in
-    // main.js — chevron rotates, target toggles `hidden`) rather than inventing a new pattern.
+    // generate.js — chevron rotates, target toggles `hidden`) rather than inventing a new pattern.
     window.toggleWhyScore = (answerId) => {
         const panel = document.getElementById(`why-score-panel-${answerId}`);
         const chevron = document.getElementById(`why-score-chevron-${answerId}`);

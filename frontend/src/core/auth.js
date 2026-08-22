@@ -2,7 +2,7 @@
 // (bcrypt hashing + JWT sessions, see backend/services/auth_service.py). "Continue with
 // Google" is a real integration point wired to routers/auth.py's google_auth() stub —
 // it returns 501 until a real Firebase project's config is supplied.
-// Mirrors attempt.js/main.js's conventions: DOM-driven rendering, window.-exposed handlers.
+// Mirrors attempt.js/generate.js's conventions: DOM-driven rendering, window.-exposed handlers.
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // which is also where a fresh login/register lands (see register()/login() below).
     const AUTH_ONLY_PAGES = ['login', 'register'];
 
-    // Called from main.js's switchPage() before it actually switches — every navigation path
+    // Called from generate.js's switchPage() before it actually switches — every navigation path
     // (nav clicks, and other controllers' internal window.switchPage() calls) goes through it.
     window.requireAuthForPage = (pageId) => {
         if (PROTECTED_PAGES.includes(pageId) && !window.isAuthenticated()) {
@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Called every time the Register page is navigated to (see main.js's switchPage()) — forces
+    // Called every time the Register page is navigated to (see generate.js's switchPage()) — forces
     // the role toggle back to a known-good state (Student, matching the page's default HTML)
     // instead of trusting the registerRole closure variable, which otherwise only ever gets set
     // once and could drift out of sync with the DOM across multiple visits in one SPA session.

@@ -3,11 +3,11 @@
 //
 // These reuse the SPA's existing page-switching model rather than introducing real client-side
 // routing: one shared shell (#page-legal, in index.html) whose title/date/body get filled in by
-// showLegalPage(slug) before the normal switchPage() activates it -- see main.js's `pages` dict,
+// showLegalPage(slug) before the normal switchPage() activates it -- see generate.js's `pages` dict,
 // where all 9 slugs below map to that same #page-legal element.
 //
 // Not wrapped in a DOMContentLoaded listener on purpose: LEGAL_PAGES and showLegalPage need to
-// exist before main.js's own DOMContentLoaded handler runs its initial-page/hash-routing logic,
+// exist before generate.js's own DOMContentLoaded handler runs its initial-page/hash-routing logic,
 // and top-level assignment (script tags execute top-to-bottom before any DOMContentLoaded fires)
 // guarantees that regardless of exactly where this tag sits in the script list.
 window.LEGAL_PAGES = {
@@ -114,7 +114,7 @@ window.closeLegalMobileNav = () => {
 
 // Hash-based deep-linking: lets a legal link be a real <a href="index.html#privacy"
 // target="_blank"> that actually opens straight to that page in the new tab, instead of only
-// working when clicked from within an already-loaded SPA session. Read once at load; main.js's
+// working when clicked from within an already-loaded SPA session. Read once at load; generate.js's
 // own init sequence checks LEGAL_SLUG_FROM_HASH before falling back to its normal landing/generate
 // default.
 window.LEGAL_SLUG_FROM_HASH = (() => {
