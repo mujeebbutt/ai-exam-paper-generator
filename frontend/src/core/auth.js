@@ -17,6 +17,12 @@ document.addEventListener('DOMContentLoaded', () => {
     const TOKEN_KEY = 'ustadexam_token';
     const USER_KEY = 'ustadexam_user';
     let registerRole = 'student';
+    // Google Identity Services state — initialize() must only ever run once (calling it again
+    // on every click triggers its own "initialized multiple times" console warning), so the
+    // per-click bits (which button, which extra register fields) are stashed here for the one
+    // shared callback to read instead.
+    let googleSignInReady = false;
+    let googleClickContext = null;
 
     function getToken() { return localStorage.getItem(TOKEN_KEY); }
     function getCachedUser() {
@@ -345,30 +351,40 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        const original = btn ? btn.innerHTML : null;
-        const setBusy = (label) => { if (btn) btn.innerHTML = `<span class="material-symbols-outlined text-base animate-spin">progress_activity</span> ${label}`; };
-        const restore = () => { if (btn && original !== null) btn.innerHTML = original; };
+        googleClickContext = { btn, original: btn ? btn.innerHTML : null, extra };
 
-        window.google.accounts.id.initialize({
-            client_id: GOOGLE_CLIENT_ID,
-            callback: async (credentialResponse) => {
-                try {
-                    setBusy('Signing in…');
-                    const data = await googleAuthApi({ id_token: credentialResponse.credential, ...extra });
-                    setSession(data.access_token, data.user);
-                    updateNavForAuthState();
-                    window.switchPage('generate');
-                } catch (err) {
-                    console.error('Google sign-in error:', err);
-                    showAuthToast(err.message || 'Google sign-in failed.');
-                } finally {
-                    restore();
-                }
-            },
-        });
+        if (!googleSignInReady) {
+            window.google.accounts.id.initialize({
+                client_id: GOOGLE_CLIENT_ID,
+                // FedCM opt-in — Google's own recommended migration ahead of FedCM becoming
+                // mandatory, and it quiets the "may stop functioning" console warning.
+                use_fedcm_for_prompt: true,
+                callback: async (credentialResponse) => {
+                    const ctx = googleClickContext || {};
+                    const setBusy = (label) => { if (ctx.btn) ctx.btn.innerHTML = `<span class="material-symbols-outlined text-base animate-spin">progress_activity</span> ${label}`; };
+                    const restore = () => { if (ctx.btn && ctx.original !== null) ctx.btn.innerHTML = ctx.original; };
+                    try {
+                        setBusy('Signing in…');
+                        const data = await googleAuthApi({ id_token: credentialResponse.credential, ...(ctx.extra || {}) });
+                        setSession(data.access_token, data.user);
+                        updateNavForAuthState();
+                        window.switchPage('generate');
+                    } catch (err) {
+                        console.error('Google sign-in error:', err);
+                        showAuthToast(err.message || 'Google sign-in failed.');
+                    } finally {
+                        restore();
+                    }
+                },
+            });
+            googleSignInReady = true;
+        }
+
         // Google's One Tap / account-chooser prompt. It can be silently skipped (e.g. the user
-        // dismissed it recently, or third-party cookies/prompts are blocked) — surface that
-        // instead of leaving the click looking like it did nothing.
+        // dismissed it recently, third-party cookies/prompts are blocked, or — most likely the
+        // first time this runs — the Client ID's Authorized JavaScript origins in Google Cloud
+        // Console doesn't list this site's origin yet) — surface that instead of leaving the
+        // click looking like it did nothing.
         window.google.accounts.id.prompt((notification) => {
             if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
                 showAuthToast('Google sign-in was blocked or dismissed — please try again.');
