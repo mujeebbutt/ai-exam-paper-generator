@@ -23,6 +23,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // shared callback to read instead.
     let googleSignInReady = false;
     let googleClickContext = null;
+    let googleSignInInFlight = false;
 
     function getToken() { return localStorage.getItem(TOKEN_KEY); }
     function getCachedUser() {
@@ -357,9 +358,10 @@ document.addEventListener('DOMContentLoaded', () => {
             window.google.accounts.id.initialize({
                 client_id: GOOGLE_CLIENT_ID,
                 // FedCM opt-in — Google's own recommended migration ahead of FedCM becoming
-                // mandatory, and it quiets the "may stop functioning" console warning.
+                // mandatory for the One Tap prompt.
                 use_fedcm_for_prompt: true,
                 callback: async (credentialResponse) => {
+                    googleSignInInFlight = false; // got a real result — the fallback timeout below is moot
                     const ctx = googleClickContext || {};
                     const setBusy = (label) => { if (ctx.btn) ctx.btn.innerHTML = `<span class="material-symbols-outlined text-base animate-spin">progress_activity</span> ${label}`; };
                     const restore = () => { if (ctx.btn && ctx.original !== null) ctx.btn.innerHTML = ctx.original; };
@@ -380,16 +382,19 @@ document.addEventListener('DOMContentLoaded', () => {
             googleSignInReady = true;
         }
 
-        // Google's One Tap / account-chooser prompt. It can be silently skipped (e.g. the user
-        // dismissed it recently, third-party cookies/prompts are blocked, or — most likely the
-        // first time this runs — the Client ID's Authorized JavaScript origins in Google Cloud
-        // Console doesn't list this site's origin yet) — surface that instead of leaving the
-        // click looking like it did nothing.
-        window.google.accounts.id.prompt((notification) => {
-            if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
+        // Google's One Tap / account-chooser prompt. Deliberately called with no moment-status
+        // callback: notification.isNotDisplayed()/isSkippedMoment() are exactly the "UI status
+        // methods" Google's FedCM migration guide is deprecating, and they log their own console
+        // warning just from being called, independent of use_fedcm_for_prompt above. A plain
+        // timeout gets the same "nothing happened, let them know" UX without touching those.
+        googleSignInInFlight = true;
+        window.google.accounts.id.prompt();
+        setTimeout(() => {
+            if (googleSignInInFlight) {
+                googleSignInInFlight = false;
                 showAuthToast('Google sign-in was blocked or dismissed — please try again.');
             }
-        });
+        }, 4000);
     };
 
     // Same visual pattern as attempt.js's anti-cheat toast (fixed top-center glass pill) —
