@@ -287,8 +287,16 @@ class LoginRequest(BaseModel):
     password: str
 
 class GoogleAuthRequest(BaseModel):
-    """Stubbed until real Firebase config is available — see routers/auth.py."""
+    """id_token is a Google Identity Services credential, verified server-side in
+    routers/auth.py's google_auth(). role/grade/subject/terms_accepted are only populated by the
+    Register page's Google button — a brand-new Google sign-in needs exactly the same info a
+    password registration collects (see RegisterRequest above); the Login page's Google button
+    leaves them unset and can only sign an existing account in, never create one."""
     id_token: str
+    role: Optional[str] = None
+    grade: Optional[str] = None
+    subject: Optional[str] = None
+    terms_accepted: bool = False
 
 class AuthUserOut(BaseModel):
     id: int

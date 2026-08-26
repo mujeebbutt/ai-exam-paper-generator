@@ -99,16 +99,74 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     return TokenResponse(access_token=token, user=user)
 
 
-@router.post("/auth/google")
-def google_auth(request: GoogleAuthRequest):
+@router.post("/auth/google", response_model=TokenResponse)
+def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
     """
-    Placeholder — real Google Sign-In needs an actual Firebase project's config (only the
-    project owner can create this; see services/auth_service.py's module docstring-equivalent
-    comment). Once that config is supplied: verify `request.id_token` against Firebase's public
-    keys (or via the Firebase Admin SDK), then get_or_create a User row keyed on google_uid,
-    exactly like register()/login() do for email/password.
+    Verifies the Google Identity Services credential from the frontend, then either signs an
+    existing user in or (Register page only — see GoogleAuthRequest's docstring) creates one.
+    Mirrors register()/login() above: same validation rules, same TokenResponse shape.
     """
-    raise HTTPException(status_code=501, detail="Google Sign-In is not configured yet.")
+    if not AuthService.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=501, detail="Google Sign-In is not configured yet.")
+
+    claims = AuthService.verify_google_id_token(request.id_token)
+    if not claims:
+        raise HTTPException(status_code=401, detail="Invalid or expired Google sign-in token.")
+
+    google_uid = claims.get("sub")
+    email = (claims.get("email") or "").lower()
+
+    user = db.query(models.User).filter(models.User.google_uid == google_uid).first()
+    if not user and email:
+        # Not seen this Google UID before — but if an email/password account already exists
+        # under the same (Google-verified) address, link it instead of erroring or duplicating,
+        # same dedupe-on-email principle register() already applies.
+        user = db.query(models.User).filter(models.User.email == email).first()
+
+    if user:
+        if not user.google_uid:
+            user.google_uid = google_uid
+            db.commit()
+            db.refresh(user)
+        token = AuthService.create_access_token(user.id)
+        return TokenResponse(access_token=token, user=user)
+
+    # No existing account. Only the Register page sends role/grade/subject/terms_accepted, so a
+    # Login-page Google click on an unrecognized account fails here rather than silently
+    # signing someone up — same "don't create accounts from Login" rule email/password login()
+    # already follows.
+    role = (request.role or "").lower()
+    if role not in ("teacher", "student"):
+        raise HTTPException(status_code=404, detail="No account found for this Google email. Please register first.")
+    if not email:
+        raise HTTPException(status_code=400, detail="Your Google account has no email to register with.")
+    if role == "student" and not (request.grade or "").strip():
+        raise HTTPException(status_code=400, detail="grade is required for student accounts.")
+    if role == "teacher" and not (request.subject or "").strip():
+        raise HTTPException(status_code=400, detail="subject is required for teacher accounts.")
+    if not request.terms_accepted:
+        raise HTTPException(status_code=400, detail="You must accept the Terms & Conditions and Privacy Policy to register.")
+    # No separate "does this email already exist" check needed here — the lookup at the top of
+    # this function already queried by this exact email and would have returned it above if so.
+
+    user = models.User(
+        full_name=(claims.get("name") or email.split("@")[0]).strip(),
+        email=email,
+        hashed_password=None,  # Google-auth-only account, no local password
+        role=role,
+        grade=request.grade.strip() if role == "student" else None,
+        subject=request.subject.strip() if role == "teacher" else None,
+        google_uid=google_uid,
+        terms_accepted=True,
+        terms_accepted_at=datetime.utcnow(),
+        terms_version=TERMS_VERSION,
+    )
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    token = AuthService.create_access_token(user.id)
+    return TokenResponse(access_token=token, user=user)
 
 
 @router.get("/auth/me", response_model=AuthUserOut)

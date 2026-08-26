@@ -211,6 +211,19 @@ async function loginApi(email, password) {
     return response.json();
 }
 
+async function googleAuthApi(payload) {
+    const response = await fetch(`${API_BASE}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Google sign-in failed");
+    }
+    return response.json();
+}
+
 async function getMeApi() {
     const response = await fetch(`${API_BASE}/auth/me`, { headers: authHeaders() });
     if (!response.ok) {

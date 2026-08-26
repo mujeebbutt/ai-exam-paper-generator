@@ -1,8 +1,16 @@
 // Authentication Controller (Phase 5) — real email/password auth against the backend
 // (bcrypt hashing + JWT sessions, see backend/services/auth_service.py). "Continue with
-// Google" is a real integration point wired to routers/auth.py's google_auth() stub —
-// it returns 501 until a real Firebase project's config is supplied.
+// Google" is wired up for real too, via Google Identity Services (see loginWithGoogle() below)
+// and routers/auth.py's google_auth() — it 501s only if GOOGLE_CLIENT_ID isn't configured.
 // Mirrors attempt.js/generate.js's conventions: DOM-driven rendering, window.-exposed handlers.
+
+// OAuth 2.0 Web Client ID from https://console.cloud.google.com/apis/credentials (create an
+// "OAuth client ID" of type "Web application", with this site's origin under "Authorized
+// JavaScript origins"). Client IDs aren't secret — they're meant to ship in frontend code, same
+// as a Firebase config object would be — but this placeholder must be replaced with a real one
+// before the Google buttons will work; the backend independently checks the matching
+// GOOGLE_CLIENT_ID env var and 501s until that's set too (see auth_service.py).
+const GOOGLE_CLIENT_ID = '1028735589847-0fss2gj2vjktco4j5rnjv1kroaq0o1ir.apps.googleusercontent.com';
 
 document.addEventListener('DOMContentLoaded', () => {
 
@@ -297,14 +305,75 @@ document.addEventListener('DOMContentLoaded', () => {
         note.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
 
-    // Real integration point — swaps its own label briefly rather than popping an alert.
-    // See routers/auth.py::google_auth() for what plugs in here once Firebase config exists.
-    window.loginWithGoogle = (evt) => {
-        const btn = evt?.currentTarget;
-        if (!btn) return;
-        const original = btn.innerHTML;
-        btn.innerHTML = '<span class="material-symbols-outlined text-lg">info</span> Needs Firebase setup — ask your admin';
-        setTimeout(() => { btn.innerHTML = original; }, 2500);
+    // Google Identity Services flow. `mode` distinguishes the two buttons that call this:
+    // 'login' (Login page) only signs an existing account in; 'register' (Register page) also
+    // collects role/grade/subject/terms consent from that page's own form — exactly what
+    // window.register() above sends — so a brand-new Google sign-in gets the same required
+    // fields a password registration does. See routers/auth.py::google_auth() for the backend
+    // half of this split.
+    window.loginWithGoogle = (evt, mode) => {
+        const btn = evt?.currentTarget || null;
+
+        if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.startsWith('YOUR_')) {
+            showAuthToast('Google Sign-In needs a Client ID configured — see auth.js.');
+            return;
+        }
+        if (!window.google?.accounts?.id) {
+            showAuthToast('Google Sign-In failed to load — check your connection and try again.');
+            return;
+        }
+
+        // Register mode: validate/collect this form's own fields up front, same checks
+        // window.register() applies, before ever opening the Google prompt.
+        let extra = {};
+        if (mode === 'register') {
+            const consentEl = document.getElementById('register-terms-consent');
+            if (consentEl && !consentEl.checked) {
+                showAuthToast('Please accept the Terms & Conditions and Privacy Policy to continue.');
+                consentEl.focus();
+                return;
+            }
+            const gradeSelectValue = document.getElementById('register-grade')?.value || '';
+            const gradeValue = gradeSelectValue === 'Other'
+                ? (document.getElementById('register-grade-other')?.value.trim() || '')
+                : gradeSelectValue;
+            extra = {
+                role: registerRole,
+                grade: registerRole === 'student' ? gradeValue : null,
+                subject: registerRole === 'teacher' ? (document.getElementById('register-subject')?.value.trim() || '') : null,
+                terms_accepted: true,
+            };
+        }
+
+        const original = btn ? btn.innerHTML : null;
+        const setBusy = (label) => { if (btn) btn.innerHTML = `<span class="material-symbols-outlined text-base animate-spin">progress_activity</span> ${label}`; };
+        const restore = () => { if (btn && original !== null) btn.innerHTML = original; };
+
+        window.google.accounts.id.initialize({
+            client_id: GOOGLE_CLIENT_ID,
+            callback: async (credentialResponse) => {
+                try {
+                    setBusy('Signing in…');
+                    const data = await googleAuthApi({ id_token: credentialResponse.credential, ...extra });
+                    setSession(data.access_token, data.user);
+                    updateNavForAuthState();
+                    window.switchPage('generate');
+                } catch (err) {
+                    console.error('Google sign-in error:', err);
+                    showAuthToast(err.message || 'Google sign-in failed.');
+                } finally {
+                    restore();
+                }
+            },
+        });
+        // Google's One Tap / account-chooser prompt. It can be silently skipped (e.g. the user
+        // dismissed it recently, or third-party cookies/prompts are blocked) — surface that
+        // instead of leaving the click looking like it did nothing.
+        window.google.accounts.id.prompt((notification) => {
+            if (notification.isNotDisplayed?.() || notification.isSkippedMoment?.()) {
+                showAuthToast('Google sign-in was blocked or dismissed — please try again.');
+            }
+        });
     };
 
     // Same visual pattern as attempt.js's anti-cheat toast (fixed top-center glass pill) —
