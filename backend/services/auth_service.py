@@ -71,8 +71,11 @@ class AuthService:
             return None
         try:
             return google_id_token.verify_oauth2_token(token, _google_auth_request, GOOGLE_CLIENT_ID)
-        except Exception:
+        except Exception as e:
             # google-auth raises plain ValueError for most rejections (bad signature, expired,
             # wrong audience) but this guards against any transport/library error too — a failed
-            # verification should always just mean "reject the sign-in", never a 500.
+            # verification should always just mean "reject the sign-in", never a 500. Logged
+            # (not returned to the client) purely so a real rejection reason shows up in Railway's
+            # deploy logs instead of every failure looking identical from the outside.
+            print(f"Google ID token verification failed: {e}")
             return None
