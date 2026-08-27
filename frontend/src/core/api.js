@@ -12,6 +12,24 @@ if (typeof API_BASE === 'undefined') {
         : `${window.location.origin}/api`;
 }
 
+// GA4 Measurement Protocol needs its own client_id to attribute a server-side event (see
+// generateExamApi()/gradeAttemptApi()/regenerateExamApi() below) back to the same visitor
+// gtag.js is already tracking client-side — rather than a disconnected event with no visitor
+// history. gtag.js writes this into the _ga cookie itself; there's no gtag.js API to read it
+// back out, so this parses the cookie directly. Cookie format is "GA<version>.<domain-depth>.
+// <random>.<timestamp>" — GA4 Measurement Protocol wants just the last two segments.
+function getGaClientId() {
+    try {
+        const match = document.cookie.match(/(?:^|;\s*)_ga=([^;]+)/);
+        if (!match) return null;
+        const parts = decodeURIComponent(match[1]).split('.');
+        if (parts.length < 4) return null;
+        return parts.slice(-2).join('.');
+    } catch (e) {
+        return null; // malformed/inaccessible cookie — the backend treats a missing client_id as "skip this event", not an error
+    }
+}
+
 async function fetchExams() {
     // Sends the auth token when logged in so the backend can scope this to "my own papers only"
     // (the Library data-scoping rule — see routers/bank.py's get_exams). Anonymous calls still
@@ -45,10 +63,12 @@ async function generateExamApi(payload) {
     // Attaches the Bearer token when the caller is logged in (authHeaders() is a no-op object
     // otherwise) so the generated exam gets user_id-attributed for the Profile page's "My
     // Generated Exams" list — generation itself still works fine for anonymous callers too.
+    // ga_client_id rides along the same way, for the backend's server-side exam_generated event
+    // (routers/generate.py) — added here rather than at every call site.
     const response = await fetch(`${API_BASE}/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify(payload)
+        body: JSON.stringify({ ...payload, ga_client_id: getGaClientId() })
     });
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -101,10 +121,12 @@ async function submitAttemptApi(attemptId, answers) {
 }
 
 async function gradeAttemptApi(attemptId, strictness, grammarCheck) {
+    // ga_client_id lets the backend's server-side grading_completed event (routers/attempts.py)
+    // attribute back to this same visitor — see getGaClientId()'s comment above.
     const response = await fetch(`${API_BASE}/attempts/${attemptId}/grade`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ strictness, grammar_check: grammarCheck })
+        body: JSON.stringify({ strictness, grammar_check: grammarCheck, ga_client_id: getGaClientId() })
     });
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
@@ -143,7 +165,11 @@ async function getWeakTopicsApi(studentId, threshold = 60) {
 }
 
 async function regenerateExamApi(examId) {
-    const response = await fetch(`${API_BASE}/exams/${examId}/regenerate`, { method: 'POST', headers: authHeaders() });
+    // This endpoint sends no request body at all, so ga_client_id rides as a query param
+    // instead — see routers/generate.py's regenerate_similar_exam() and getGaClientId() above.
+    const gaClientId = getGaClientId();
+    const qs = gaClientId ? `?ga_client_id=${encodeURIComponent(gaClientId)}` : '';
+    const response = await fetch(`${API_BASE}/exams/${examId}/regenerate${qs}`, { method: 'POST', headers: authHeaders() });
     if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.detail || "Failed to generate a practice set");

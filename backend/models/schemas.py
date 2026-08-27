@@ -112,6 +112,10 @@ class GenerateRequest(BaseModel):
     # (which would otherwise just hand back the original exam unchanged).
     avoid_questions: Optional[List[str]] = None
     force_regenerate: bool = False
+    # GA4 Measurement Protocol client_id (frontend/src/core/api.js reads it from the _ga cookie)
+    # — lets routers/generate.py's server-side exam_generated event attribute back to the same
+    # visitor gtag.js is already tracking, instead of appearing as a disconnected event.
+    ga_client_id: Optional[str] = None
 
 # --- Exam-Taking & AI Grading Schemas ---
 
@@ -156,6 +160,8 @@ class AttemptSubmitResponse(BaseModel):
 class AttemptGradeRequest(BaseModel):
     strictness: str = "medium" # easy, medium, hard
     grammar_check: bool = False
+    # See GenerateRequest.ga_client_id above — same purpose, for grading_completed.
+    ga_client_id: Optional[str] = None
 
 class RubricCriterion(BaseModel):
     criterion: str

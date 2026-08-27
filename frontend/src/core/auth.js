@@ -407,6 +407,15 @@ document.addEventListener('DOMContentLoaded', () => {
             const data = await googleAuthApi({ id_token, ...extra });
             setSession(data.access_token, data.user);
             updateNavForAuthState();
+            // Fired client-side (not via the backend's GA4 Measurement Protocol calls used for
+            // exam_generated/grading_completed) because it only ever happens right here, in a
+            // response the frontend is already handling — no risk of losing it to a closed tab.
+            // Fires for every successful Google sign-in, existing accounts included, not just
+            // brand-new ones (gtag.js has no reliable "was this account just created" signal
+            // from this response alone).
+            if (typeof gtag === 'function') {
+                gtag('event', 'sign_up', { method: 'Google' });
+            }
             window.switchPage('generate');
         } catch (err) {
             console.error('Google sign-in error:', err);

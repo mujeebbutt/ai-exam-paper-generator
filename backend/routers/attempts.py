@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from sqlalchemy.orm import Session
 from db.database import get_db
 from db import models
@@ -13,6 +13,7 @@ from services.attempt_service import AttemptService
 from services.grading_service import GradingService
 from services.topic_analytics_service import TopicAnalyticsService
 from services.integrity_service import IntegrityService
+from services.analytics_service import AnalyticsService
 from datetime import datetime
 import logging
 
@@ -179,7 +180,7 @@ def submit_attempt(attempt_id: int, request: AttemptSubmitRequest, db: Session =
 
 
 @router.post("/attempts/{attempt_id}/grade", response_model=AttemptDetail)
-async def grade_attempt(attempt_id: int, request: AttemptGradeRequest, db: Session = Depends(get_db)):
+async def grade_attempt(attempt_id: int, request: AttemptGradeRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db)):
     attempt = db.query(models.StudentAttempt).filter(models.StudentAttempt.id == attempt_id).first()
     if not attempt:
         raise HTTPException(status_code=404, detail="Attempt not found.")
@@ -243,6 +244,9 @@ async def grade_attempt(attempt_id: int, request: AttemptGradeRequest, db: Sessi
     attempt.status = "graded"
     db.commit()
     db.refresh(attempt)
+
+    background_tasks.add_task(AnalyticsService.send_event, request.ga_client_id,
+                               "grading_completed", {"exam_id": attempt.exam_id})
 
     return AttemptDetail(
         id=attempt.id,

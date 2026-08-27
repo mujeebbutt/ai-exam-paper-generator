@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, BackgroundTasks
 from routers.auth import get_current_user_optional
 from models.schemas import GenerateRequest, SectionConfig, BrandingInfo, StudentInfo
 from services.vector_store import VectorStore
@@ -7,11 +7,12 @@ from services.ocr_service import OCRService
 from services.validator import Validator
 from services.deduplicator import Deduplicator
 from services.bloom_classifier import BloomClassifier
+from services.analytics_service import AnalyticsService
 from utils.prompt_templates import PromptTemplates
 from db.database import get_db
 from db import models
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 import json
 import logging
 import asyncio
@@ -26,7 +27,7 @@ llm_service = LLMService()
 _request_timestamps = {}
 
 @router.post("/generate")
-async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db),
+async def generate_exam(request: GenerateRequest, background_tasks: BackgroundTasks, db: Session = Depends(get_db),
                          current_user: models.User = Depends(get_current_user_optional)):
     """
     Single-phase AI generation with dynamic sections and strict counts.
@@ -55,6 +56,8 @@ async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db),
                 req_sections = [s.dict() for s in request.sections]
                 if str(cached_sections) == str(req_sections):
                     logging.info("CACHE HIT: Returning previously generated exam for this session.")
+                    background_tasks.add_task(AnalyticsService.send_event, request.ga_client_id,
+                                               "exam_generated", {"exam_id": existing_exam.id})
                     return {
                         "session_id": existing_exam.session_id,
                         "subject": existing_exam.subject,
@@ -90,7 +93,7 @@ async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db),
     # ── 5. MOCK MODE ──────────────────────────────────────────────────────────
     if llm_service.mock_mode:
         logging.info("MOCK MODE: skipping AI generation")
-        return await _mock_generation(request, context_text, db, current_user)
+        return await _mock_generation(request, context_text, db, current_user, background_tasks)
 
     try:
         # ── 6. Single-Phase Question Generation (ONE API CALL) ────────────────
@@ -219,6 +222,8 @@ async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db),
             logging.error(f"Database save error: {e}")
             new_exam_id = None
 
+        background_tasks.add_task(AnalyticsService.send_event, request.ga_client_id,
+                                   "exam_generated", {"exam_id": new_exam_id})
         return {
             "session_id": request.session_id,
             "subject": final_subject,
@@ -234,14 +239,17 @@ async def generate_exam(request: GenerateRequest, db: Session = Depends(get_db),
         raise HTTPException(status_code=500, detail=str(e))
 
 @router.post("/exams/{exam_id}/regenerate")
-async def regenerate_similar_exam(exam_id: int, db: Session = Depends(get_db),
+async def regenerate_similar_exam(exam_id: int, background_tasks: BackgroundTasks, ga_client_id: Optional[str] = None,
+                                   db: Session = Depends(get_db),
                                    current_user: models.User = Depends(get_current_user_optional)):
     """
     Practice mode: generates a fresh set of questions on the same source material/topic as an
     existing exam, explicitly steered away from repeating the original questions (see
     PromptTemplates.build_generation_prompt's avoid_questions block). Reuses the exact same
     generation pipeline as POST /generate by calling generate_exam() directly, rather than
-    duplicating any of its caching/parsing/validation/DB-save logic here.
+    duplicating any of its caching/parsing/validation/DB-save logic here — including its
+    exam_generated GA4 event, via ga_client_id (a query param rather than a body field since this
+    endpoint otherwise sends no request body at all — see api.js's regenerateExamApi()).
     """
     original = db.query(models.Exam).filter(models.Exam.id == exam_id).first()
     if not original:
@@ -281,12 +289,14 @@ async def regenerate_similar_exam(exam_id: int, db: Session = Depends(get_db),
         student_info=StudentInfo(**original.student_info) if original.student_info else None,
         avoid_questions=avoid_questions,
         force_regenerate=True,
+        ga_client_id=ga_client_id,
     )
 
-    return await generate_exam(practice_request, db, current_user)
+    return await generate_exam(practice_request, background_tasks, db, current_user)
 
 
-async def _mock_generation(request: GenerateRequest, context_text: str, db: Session, current_user: models.User = None):
+async def _mock_generation(request: GenerateRequest, context_text: str, db: Session, current_user: models.User = None,
+                            background_tasks: BackgroundTasks = None):
     """Mock mode generation."""
     from services.llm_service import LLMService as _LLM
     _svc = llm_service
@@ -336,6 +346,9 @@ async def _mock_generation(request: GenerateRequest, context_text: str, db: Sess
         logging.error(f"Mock DB save error: {e}")
         new_exam_id = None
 
+    if background_tasks is not None:
+        background_tasks.add_task(AnalyticsService.send_event, request.ga_client_id,
+                                   "exam_generated", {"exam_id": new_exam_id})
     return {
         "session_id": request.session_id,
         "subject": final_subject,
