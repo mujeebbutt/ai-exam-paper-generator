@@ -39,7 +39,7 @@ sentry_sdk.init(
 
 from fastapi.middleware.cors import CORSMiddleware
 from db.database import engine, Base
-from routers import upload, generate, export, bank, attempts, auth
+from routers import upload, generate, export, bank, attempts, auth, pages
 from fastapi.staticfiles import StaticFiles
 import logging
 
@@ -100,6 +100,14 @@ if ENVIRONMENT != "production":
     @app.get("/sentry-debug")
     async def trigger_error():
         division_by_zero = 1 / 0
+
+# Real, separately-crawlable server-rendered routes for the public/marketing pages (Pricing,
+# Features, About, and all legal docs) — see routers/pages.py for why these needed to exist as
+# real URLs instead of JS-toggled panels inside index.html, and why "/" itself is deliberately
+# NOT one of them (it stays the SPA's actual entry point/session-boot route below). Registered
+# here, before the catch-all StaticFiles mount, so these specific paths take priority over it —
+# same reasoning as /api/status and /sentry-debug above.
+app.include_router(pages.router)
 
 # Serve the frontend (plain HTML/CSS/JS, no build step) so ustadexam.com/ loads the actual UI
 # instead of this API. Requires Railway's service Root Directory to be the repo root (not

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="space-y-20">
+    <div class="text-center space-y-4">
+        <span class="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Pricing</span>
+        <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight">Simple Pricing for Students and Teachers</h1>
+        <p class="text-white/50 text-base md:text-lg max-w-2xl mx-auto leading-relaxed">
+            Pricing is built around how much exam generation and grading you actually need, not around locking basic
+            features behind a paywall — every plan can generate exams, take them, and get AI-graded results.
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8 items-stretch">
+        <!-- Free -->
+        <div class="premium-glass p-10 rounded-[3rem] border border-white/5 flex flex-col space-y-6">
+            <div>
+                <h2 class="text-sm font-black uppercase tracking-widest text-white/50">Free</h2>
+                <p class="text-5xl font-black text-white mt-3">Rs. 0</p>
+                <p class="text-white/30 text-xs font-bold mt-1">forever</p>
+            </div>
+            <p class="text-white/50 text-sm leading-relaxed">
+                Good for trying UstadExam out or occasional use — enough to generate a real exam and get a real
+                AI-graded result without paying anything. Free comes with 2 exam generations and 2 AI grading checks
+                per day, at medium difficulty only, with grammar checking locked.
+            </p>
+            <ul class="space-y-3 text-sm text-white/50 flex-grow">
+                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> 2 exam generations / day</li>
+                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> 2 AI grading checks / day</li>
+                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Medium strictness only</li>
+                <li class="flex items-center gap-3 opacity-40"><span class="material-symbols-outlined text-lg">lock</span> Grammar checking locked</li>
+            </ul>
+            <a href="/" class="block text-center w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black uppercase text-xs tracking-widest transition-all">Get Started</a>
+        </div>
+
+        <!-- Student Pro -->
+        <div class="premium-glass p-10 rounded-[3rem] border-2 border-primary/50 flex flex-col space-y-6 relative">
+            <span class="absolute -top-4 left-1/2 -translate-x-1/2 px-5 py-1.5 rounded-full bg-primary text-white text-[9px] font-black uppercase tracking-widest">Most Popular</span>
+            <div>
+                <h2 class="text-sm font-black uppercase tracking-widest text-primary">Student Pro</h2>
+                <p class="text-5xl font-black text-white mt-3">Rs. 599<span class="text-lg text-white/30">/mo</span></p>
+                <p class="text-white/30 text-xs font-bold mt-1">billed monthly</p>
+            </div>
+            <p class="text-white/50 text-sm leading-relaxed">
+                Built for students who want to self-test seriously rather than occasionally — unlimited generation
+                and grading, every difficulty level, grammar checking unlocked, and full exam history with
+                weak-topic detection so you know exactly what to review before the real exam.
+            </p>
+            <ul class="space-y-3 text-sm text-white/50 flex-grow">
+                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Unlimited exam generation</li>
+                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> All 3 strictness levels</li>
+                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Grammar checking unlocked</li>
+                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Full exam history</li>
+                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Weak-topic detection</li>
+            </ul>
+            <a href="/" class="block text-center w-full py-4 rounded-2xl btn-brand-gradient text-white font-black uppercase text-xs tracking-widest shadow-lg shadow-primary/20 transition-all">Upgrade to Student Pro</a>
+        </div>
+
+        <!-- Teacher Pro -->
+        <div class="premium-glass p-10 rounded-[3rem] border border-white/5 flex flex-col space-y-6">
+            <div>
+                <h2 class="text-sm font-black uppercase tracking-widest text-white/50">Teacher Pro</h2>
+                <p class="text-5xl font-black text-white mt-3">Rs. 3,900<span class="text-lg text-white/30">/mo</span></p>
+                <p class="text-white/30 text-xs font-bold mt-1">billed monthly</p>
+            </div>
+            <p class="text-white/50 text-sm leading-relaxed">
+                For teachers running full classes rather than a single account — everything in Student Pro, plus
+                bulk generation across a class, custom syllabus upload, and a class-wide results dashboard so
+                grading forty papers takes minutes instead of an evening.
+            </p>
+            <ul class="space-y-3 text-sm text-white/50 flex-grow">
+                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Everything in Student Pro</li>
+                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Bulk class generation</li>
+                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Custom syllabus upload</li>
+                <li class="flex items-center gap-3"><span class="material-symbols-outlined text-emerald-400 text-lg">check_circle</span> Class-wide results dashboard</li>
+            </ul>
+            <a href="/" class="block text-center w-full py-4 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 text-white font-black uppercase text-xs tracking-widest transition-all">Upgrade to Teacher Pro</a>
+        </div>
+    </div>
+
+    <div class="max-w-3xl mx-auto space-y-6">
+        <h2 class="text-2xl font-black text-white tracking-tight text-center">Pricing FAQ</h2>
+
+        <div class="premium-glass p-6 rounded-[2rem] border border-white/5 space-y-2">
+            <h3 class="text-white font-bold">Can I upgrade or downgrade anytime?</h3>
+            <p class="text-white/50 text-sm leading-relaxed">
+                Yes — you can upgrade to Student Pro or Teacher Pro whenever you like. Downgrading takes effect at
+                the end of your current paid period, so you keep Pro access you've already paid for.
+            </p>
+        </div>
+
+        <div class="premium-glass p-6 rounded-[2rem] border border-white/5 space-y-2">
+            <h3 class="text-white font-bold">Is there a free trial for Pro?</h3>
+            <p class="text-white/50 text-sm leading-relaxed">
+                There's no separate Pro trial right now — the Free plan itself is the way to try UstadExam before
+                upgrading. <em>Flagging for confirmation: if you'd rather offer a time-limited Pro trial, let me
+                know and I'll update this answer and the actual upgrade flow to match.</em>
+            </p>
+        </div>
+
+        <div class="premium-glass p-6 rounded-[2rem] border border-white/5 space-y-2">
+            <h3 class="text-white font-bold">What payment methods are supported?</h3>
+            <p class="text-white/50 text-sm leading-relaxed">
+                JazzCash and EasyPaisa. Upgrades are confirmed manually today — pay via either method, then send
+                your payment confirmation over WhatsApp and your account is upgraded once it's verified.
+                <em>Flagging for confirmation: this matches the manual upgrade flow already live on the app's
+                Pricing-CTA notice — say so if that's changed or you'd rather this read differently.</em>
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

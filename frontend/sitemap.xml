@@ -1,63 +1,84 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 
-  <!-- The whole marketing site (Vision/Why UstadExam/How It Works/Features/Pricing/About/FAQ)
-       is one HTML document (frontend/index.html) with in-page scroll sections, not separate
-       URLs — this is the one genuinely distinct, crawlable resource this site has. -->
+  <!-- The authenticated SPA (dashboard, exam generation/taking/grading, login/register) still
+       lives entirely at "/" (frontend/index.html) and isn't listed separately here — it's one
+       URL regardless of which panel window.switchPage() shows. -->
   <url>
     <loc>https://ustadexam.com/</loc>
-    <lastmod>2026-08-22</lastmod>
+    <lastmod>2026-08-27</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
   </url>
 
-  <!-- Legal pages: real url fragments that load distinct content on a fresh visit (see
-       legal.js's LEGAL_SLUG_FROM_HASH), unlike Pricing/About/etc above. Included for
-       completeness, but Google generally treats a #fragment as the same URL as the page it's
-       on for indexing purposes, so these may not end up ranked as separate results from "/". -->
+  <!-- Public/marketing pages — now real, separately-rendered server routes (see
+       backend/routers/pages.py) instead of JS-toggled panels/anchors inside index.html, so each
+       one is actually indexable on its own instead of only ever surfacing "/" in search results. -->
   <url>
-    <loc>https://ustadexam.com/#privacy</loc>
-    <lastmod>2026-08-22</lastmod>
+    <loc>https://ustadexam.com/pricing</loc>
+    <lastmod>2026-08-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ustadexam.com/features</loc>
+    <lastmod>2026-08-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://ustadexam.com/about</loc>
+    <lastmod>2026-08-27</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+  </url>
+
+  <!-- Legal pages: real URLs now (previously only "https://ustadexam.com/#slug" hash fragments,
+       which Google generally treats as the same URL as the page they're on, not a separate
+       result). -->
+  <url>
+    <loc>https://ustadexam.com/privacy-policy</loc>
+    <lastmod>2026-08-27</lastmod>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://ustadexam.com/#terms</loc>
-    <lastmod>2026-08-22</lastmod>
+    <loc>https://ustadexam.com/terms</loc>
+    <lastmod>2026-08-27</lastmod>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://ustadexam.com/#refund-policy</loc>
-    <lastmod>2026-08-22</lastmod>
+    <loc>https://ustadexam.com/refund-policy</loc>
+    <lastmod>2026-08-27</lastmod>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://ustadexam.com/#ai-disclaimer</loc>
-    <lastmod>2026-08-22</lastmod>
+    <loc>https://ustadexam.com/ai-disclaimer</loc>
+    <lastmod>2026-08-27</lastmod>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://ustadexam.com/#acceptable-use</loc>
-    <lastmod>2026-08-22</lastmod>
+    <loc>https://ustadexam.com/academic-integrity</loc>
+    <lastmod>2026-08-27</lastmod>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://ustadexam.com/#cookie-policy</loc>
-    <lastmod>2026-08-22</lastmod>
+    <loc>https://ustadexam.com/cookie-policy</loc>
+    <lastmod>2026-08-27</lastmod>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://ustadexam.com/#copyright-policy</loc>
-    <lastmod>2026-08-22</lastmod>
+    <loc>https://ustadexam.com/copyright-policy</loc>
+    <lastmod>2026-08-27</lastmod>
     <priority>0.3</priority>
   </url>
   <url>
-    <loc>https://ustadexam.com/#disclaimer</loc>
-    <lastmod>2026-08-22</lastmod>
-    <priority>0.3</priority>
+    <loc>https://ustadexam.com/disclaimer</loc>
+    <lastmod>2026-08-27</lastmod>
+    <priority>0.2</priority>
   </url>
   <url>
-    <loc>https://ustadexam.com/#legal-contact</loc>
-    <lastmod>2026-08-22</lastmod>
+    <loc>https://ustadexam.com/contact</loc>
+    <lastmod>2026-08-27</lastmod>
     <priority>0.3</priority>
   </url>
 

@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block content %}
+<!-- Carried over as-is from index.html's #about landing-page section (no new copy requested for
+     this page — same content, same real facts, just given its own indexable URL). -->
+<div class="space-y-12">
+    <div class="text-center space-y-3">
+        <span class="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">About UstadExam</span>
+        <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight">Built from a real problem.</h1>
+        <p class="text-white/40 text-sm md:text-base max-w-xl mx-auto leading-relaxed">UstadExam started with a simple idea: exam creation shouldn't require teachers to repeat the same work every time.</p>
+    </div>
+
+    <div class="max-w-3xl mx-auto grid grid-cols-1 md:grid-cols-[1fr_auto_1fr] gap-4 md:gap-6 items-center">
+        <div class="premium-glass rounded-[2rem] p-7 space-y-3 border border-white/5 h-full">
+            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">The Problem</span>
+            <ul class="space-y-1.5 text-sm text-white/50 font-bold">
+                <li class="flex items-center gap-2"><span class="material-symbols-outlined text-white/20 text-base">close</span>Repetitive preparation</li>
+                <li class="flex items-center gap-2"><span class="material-symbols-outlined text-white/20 text-base">close</span>Manual grading</li>
+                <li class="flex items-center gap-2"><span class="material-symbols-outlined text-white/20 text-base">close</span>Limited feedback</li>
+            </ul>
+        </div>
+        <div class="flex justify-center">
+            <span class="material-symbols-outlined text-primary/50 text-2xl md:hidden">arrow_downward</span>
+            <span class="material-symbols-outlined text-primary/50 text-2xl hidden md:block">arrow_forward</span>
+        </div>
+        <div class="premium-glass rounded-[2rem] p-7 space-y-2 border border-primary/20 h-full flex flex-col justify-center">
+            <span class="text-[10px] font-black uppercase tracking-[0.3em] text-primary">The Idea</span>
+            <p class="text-white text-sm font-bold leading-relaxed">Turn existing study material into structured, gradable assessments using AI.</p>
+        </div>
+    </div>
+
+    <div class="founder-card">
+        <div class="founder-photo-block">
+            <img src="/founder-photo.jpg" alt="Mujeeb ur Rehman, founder of UstadExam" class="founder-card-photo">
+            <span class="founder-doodle-star" aria-hidden="true">✦</span>
+        </div>
+        <div class="founder-card-content">
+            <p class="founder-greeting">Hey there — I'm<br><span class="founder-signature">Mujeeb</span></p>
+            <svg class="founder-swash" viewBox="0 0 160 20" aria-hidden="true">
+                <path d="M4 14 Q 40 2, 78 12 T 156 8" fill="none" stroke="#ff6b8a" stroke-width="3" stroke-linecap="round" />
+            </svg>
+            <p class="founder-role">Developer <span class="founder-dot">•</span> Founder</p>
+            <p class="text-white/50 text-sm max-w-sm leading-relaxed">Building UstadExam to turn a teacher's hours of prep and grading into minutes.</p>
+            <div class="flex items-center gap-2 flex-wrap pt-1">
+                <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/50">Python</span>
+                <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/50">AI/ML</span>
+                <span class="px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-widest text-white/50">FastAPI</span>
+            </div>
+        </div>
+    </div>
+
+    <p class="text-center text-white/40 text-sm font-bold">
+        Building UstadExam one feature at a time. Follow the journey
+        <a href="https://themujeeb.dev" target="_blank" rel="noopener noreferrer" class="btn-brand-gradient inline-flex items-center gap-1.5 ml-2 px-4 py-2 rounded-full text-white text-[10px] font-black uppercase tracking-widest align-middle transition-all">
+            themujeeb.dev <span class="material-symbols-outlined text-xs">arrow_outward</span>
+        </a>
+    </p>
+
+    <p class="text-center text-white/50 text-sm md:text-base font-bold max-w-2xl mx-auto leading-relaxed">
+        Teachers shouldn't have to spend hours preparing and checking exams when their time is better spent teaching.
+    </p>
+</div>
+{% endblock %}

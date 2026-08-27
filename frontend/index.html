@@ -4,10 +4,12 @@
 <head>
     <meta charset="utf-8" />
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>UstadExam - AI-Powered Exam Generation</title>
-    <meta name="description" content="UstadExam generates, grades, and tracks progress on AI-powered exams from your own study material.">
-    <meta property="og:title" content="UstadExam">
-    <meta property="og:description" content="AI-powered exam generation, grading, and progress tracking.">
+    <title>UstadExam - AI Exam Generator &amp; Grading Tool for Teachers &amp; Students</title>
+    <meta name="description" content="Generate exam papers from any syllabus and grade student answers automatically with AI. Built for teachers and students in Pakistan. Free to start.">
+    <link rel="canonical" href="https://ustadexam.com/">
+    <meta property="og:title" content="UstadExam - AI Exam Generator &amp; Grading Tool for Teachers &amp; Students">
+    <meta property="og:description" content="Generate exam papers from any syllabus and grade student answers automatically with AI. Built for teachers and students in Pakistan. Free to start.">
+    <meta property="og:url" content="https://ustadexam.com/">
     <meta property="og:type" content="website">
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap"
@@ -1277,28 +1279,28 @@
                         <div class="flex flex-col gap-3 text-xs font-bold text-white/50">
                             <a href="javascript:void(0)" onclick="window.scrollToSection('landing-hero')" class="hover:text-primary transition-colors w-fit">Vision</a>
                             <a href="javascript:void(0)" onclick="window.scrollToSection('how-it-works')" class="hover:text-primary transition-colors w-fit">How It Works</a>
-                            <a href="javascript:void(0)" onclick="window.scrollToSection('features')" class="hover:text-primary transition-colors w-fit">Features</a>
-                            <a href="javascript:void(0)" onclick="window.scrollToSection('pricing')" class="hover:text-primary transition-colors w-fit">Pricing</a>
-                            <a href="javascript:void(0)" onclick="window.scrollToSection('about')" class="hover:text-primary transition-colors w-fit">About</a>
+                            <a href="/features" onclick="if(location.pathname==='/'){event.preventDefault();window.scrollToSection('features');}" class="hover:text-primary transition-colors w-fit">Features</a>
+                            <a href="/pricing" onclick="if(location.pathname==='/'){event.preventDefault();window.scrollToSection('pricing');}" class="hover:text-primary transition-colors w-fit">Pricing</a>
+                            <a href="/about" onclick="if(location.pathname==='/'){event.preventDefault();window.scrollToSection('about');}" class="hover:text-primary transition-colors w-fit">About</a>
                             <a href="javascript:void(0)" onclick="window.scrollToSection('faq')" class="hover:text-primary transition-colors w-fit">FAQ</a>
                         </div>
                     </div>
                     <div class="space-y-4">
                         <h5 class="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Legal</h5>
                         <div class="flex flex-col gap-3 text-xs font-bold text-white/50">
-                            <a href="javascript:void(0)" onclick="window.showLegalPage('privacy')" class="hover:text-primary transition-colors w-fit">Privacy Policy</a>
-                            <a href="javascript:void(0)" onclick="window.showLegalPage('terms')" class="hover:text-primary transition-colors w-fit">Terms &amp; Conditions</a>
-                            <a href="javascript:void(0)" onclick="window.showLegalPage('refund-policy')" class="hover:text-primary transition-colors w-fit">Refund Policy</a>
-                            <a href="javascript:void(0)" onclick="window.showLegalPage('ai-disclaimer')" class="hover:text-primary transition-colors w-fit">AI Disclaimer</a>
-                            <a href="javascript:void(0)" onclick="window.showLegalPage('acceptable-use')" class="hover:text-primary transition-colors w-fit">Academic Integrity</a>
-                            <a href="javascript:void(0)" onclick="window.showLegalPage('cookie-policy')" class="hover:text-primary transition-colors w-fit">Cookie Policy</a>
-                            <a href="javascript:void(0)" onclick="window.showLegalPage('copyright-policy')" class="hover:text-primary transition-colors w-fit">Copyright Policy</a>
+                            <a href="/privacy-policy" onclick="if(location.pathname==='/'){event.preventDefault();window.showLegalPage('privacy');}" class="hover:text-primary transition-colors w-fit">Privacy Policy</a>
+                            <a href="/terms" onclick="if(location.pathname==='/'){event.preventDefault();window.showLegalPage('terms');}" class="hover:text-primary transition-colors w-fit">Terms &amp; Conditions</a>
+                            <a href="/refund-policy" onclick="if(location.pathname==='/'){event.preventDefault();window.showLegalPage('refund-policy');}" class="hover:text-primary transition-colors w-fit">Refund Policy</a>
+                            <a href="/ai-disclaimer" onclick="if(location.pathname==='/'){event.preventDefault();window.showLegalPage('ai-disclaimer');}" class="hover:text-primary transition-colors w-fit">AI Disclaimer</a>
+                            <a href="/academic-integrity" onclick="if(location.pathname==='/'){event.preventDefault();window.showLegalPage('acceptable-use');}" class="hover:text-primary transition-colors w-fit">Academic Integrity</a>
+                            <a href="/cookie-policy" onclick="if(location.pathname==='/'){event.preventDefault();window.showLegalPage('cookie-policy');}" class="hover:text-primary transition-colors w-fit">Cookie Policy</a>
+                            <a href="/copyright-policy" onclick="if(location.pathname==='/'){event.preventDefault();window.showLegalPage('copyright-policy');}" class="hover:text-primary transition-colors w-fit">Copyright Policy</a>
                         </div>
                     </div>
                     <div class="space-y-4">
                         <h5 class="text-[10px] font-black uppercase tracking-[0.3em] text-white/40">Support</h5>
                         <div class="flex flex-col gap-3 text-xs font-bold text-white/50">
-                            <a href="javascript:void(0)" onclick="window.showLegalPage('legal-contact')" class="hover:text-primary transition-colors w-fit">Contact Us</a>
+                            <a href="/contact" onclick="if(location.pathname==='/'){event.preventDefault();window.showLegalPage('legal-contact');}" class="hover:text-primary transition-colors w-fit">Contact Us</a>
                             <a href="javascript:void(0)" onclick="window.switchPage('login')" class="hover:text-primary transition-colors w-fit">Login</a>
                             <a href="javascript:void(0)" onclick="window.switchPage('register')" class="hover:text-primary transition-colors w-fit">Register</a>
                         </div>
@@ -1335,14 +1337,14 @@
                         <!-- Sidebar -->
                         <nav id="legal-sidebar" class="hidden md:flex md:flex-col md:sticky md:top-8 gap-1">
                             <span class="px-3 mb-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/30">Legal &amp; Policies</span>
-                            <a href="index.html#privacy" data-legal-slug="privacy" onclick="event.preventDefault(); window.showLegalPage('privacy')" class="legal-nav-item">Privacy Policy</a>
-                            <a href="index.html#terms" data-legal-slug="terms" onclick="event.preventDefault(); window.showLegalPage('terms')" class="legal-nav-item">Terms &amp; Conditions</a>
-                            <a href="index.html#refund-policy" data-legal-slug="refund-policy" onclick="event.preventDefault(); window.showLegalPage('refund-policy')" class="legal-nav-item">Refund Policy</a>
-                            <a href="index.html#ai-disclaimer" data-legal-slug="ai-disclaimer" onclick="event.preventDefault(); window.showLegalPage('ai-disclaimer')" class="legal-nav-item">AI Disclaimer</a>
-                            <a href="index.html#acceptable-use" data-legal-slug="acceptable-use" onclick="event.preventDefault(); window.showLegalPage('acceptable-use')" class="legal-nav-item">Academic Integrity</a>
-                            <a href="index.html#cookie-policy" data-legal-slug="cookie-policy" onclick="event.preventDefault(); window.showLegalPage('cookie-policy')" class="legal-nav-item">Cookie Policy</a>
-                            <a href="index.html#copyright-policy" data-legal-slug="copyright-policy" onclick="event.preventDefault(); window.showLegalPage('copyright-policy')" class="legal-nav-item">Copyright Policy</a>
-                            <a href="index.html#legal-contact" data-legal-slug="legal-contact" onclick="event.preventDefault(); window.showLegalPage('legal-contact')" class="legal-nav-item">Contact Us</a>
+                            <a href="/privacy-policy" data-legal-slug="privacy" onclick="event.preventDefault(); window.showLegalPage('privacy')" class="legal-nav-item">Privacy Policy</a>
+                            <a href="/terms" data-legal-slug="terms" onclick="event.preventDefault(); window.showLegalPage('terms')" class="legal-nav-item">Terms &amp; Conditions</a>
+                            <a href="/refund-policy" data-legal-slug="refund-policy" onclick="event.preventDefault(); window.showLegalPage('refund-policy')" class="legal-nav-item">Refund Policy</a>
+                            <a href="/ai-disclaimer" data-legal-slug="ai-disclaimer" onclick="event.preventDefault(); window.showLegalPage('ai-disclaimer')" class="legal-nav-item">AI Disclaimer</a>
+                            <a href="/academic-integrity" data-legal-slug="acceptable-use" onclick="event.preventDefault(); window.showLegalPage('acceptable-use')" class="legal-nav-item">Academic Integrity</a>
+                            <a href="/cookie-policy" data-legal-slug="cookie-policy" onclick="event.preventDefault(); window.showLegalPage('cookie-policy')" class="legal-nav-item">Cookie Policy</a>
+                            <a href="/copyright-policy" data-legal-slug="copyright-policy" onclick="event.preventDefault(); window.showLegalPage('copyright-policy')" class="legal-nav-item">Copyright Policy</a>
+                            <a href="/contact" data-legal-slug="legal-contact" onclick="event.preventDefault(); window.showLegalPage('legal-contact')" class="legal-nav-item">Contact Us</a>
                         </nav>
 
                         <!-- Content -->
@@ -1636,10 +1638,13 @@
                 <button data-section-link="landing-hero" onclick="window.scrollToSection('landing-hero')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">Vision</button>
                 <button data-section-link="why-ustadexam" onclick="window.scrollToSection('why-ustadexam')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">Why UstadExam</button>
                 <button data-section-link="how-it-works" onclick="window.scrollToSection('how-it-works')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">How It Works</button>
-                <button data-section-link="features" onclick="window.scrollToSection('features')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">Features</button>
+                <!-- Real <a href> (not <button onclick>, unlike the scroll-only items above) so
+                     crawlers can actually follow these to their new real routes — see
+                     routers/pages.py. Still scroll-smooth in-page when already on "/". -->
+                <a data-section-link="features" href="/features" onclick="if(location.pathname==='/'){event.preventDefault();window.scrollToSection('features');}" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">Features</a>
                 <!-- Order matches actual page/scroll order: Pricing sits before About on the page. -->
-                <button data-section-link="pricing" onclick="window.scrollToSection('pricing')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">Pricing</button>
-                <button data-section-link="about" onclick="window.scrollToSection('about')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">About</button>
+                <a data-section-link="pricing" href="/pricing" onclick="if(location.pathname==='/'){event.preventDefault();window.scrollToSection('pricing');}" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">Pricing</a>
+                <a data-section-link="about" href="/about" onclick="if(location.pathname==='/'){event.preventDefault();window.scrollToSection('about');}" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">About</a>
                 <button data-section-link="faq" onclick="window.scrollToSection('faq')" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">FAQ</button>
             </div>
             <button onclick="window.tryUstadExam()" class="px-6 py-3 rounded-full btn-brand-gradient text-white font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all whitespace-nowrap">Try UstadExam</button>

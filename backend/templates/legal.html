@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-10 lg:gap-16 items-start">
+    <!-- Sidebar — same 9 legal docs as index.html's #legal-sidebar, real hrefs to each page's
+         own route instead of the SPA's showLegalPage() onclick handlers. -->
+    <nav class="hidden md:flex md:flex-col md:sticky md:top-28 gap-1">
+        <span class="px-3 mb-3 text-[9px] font-black uppercase tracking-[0.3em] text-white/30">Legal &amp; Policies</span>
+        {% for link_slug, link_label, link_href in legal_nav %}
+        <a href="{{ link_href }}" class="legal-nav-item{{ ' active' if link_slug == slug else '' }}">{{ link_label }}</a>
+        {% endfor %}
+    </nav>
+
+    <div class="min-w-0">
+        <div class="space-y-3 mb-10">
+            <span class="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40 inline-block">Legal</span>
+            <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight">{{ heading }}</h1>
+            <p class="text-white/40 text-sm font-bold">Last Updated: {{ updated }}</p>
+        </div>
+        <div class="legal-body">{{ body_html | safe }}</div>
+    </div>
+</div>
+{% endblock %}

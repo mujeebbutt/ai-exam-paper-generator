@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>{{ title }}</title>
+    <meta name="description" content="{{ meta_description }}">
+    <link rel="canonical" href="{{ canonical_url }}">
+    <meta property="og:title" content="{{ og_title or title }}">
+    <meta property="og:description" content="{{ og_description or meta_description }}">
+    <meta property="og:url" content="{{ canonical_url }}">
+    <meta property="og:type" content="website">
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&amp;display=swap"
+        rel="stylesheet" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&amp;display=swap" rel="stylesheet" />
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <!--
+        Same visual system as frontend/index.html (Tailwind CDN + this same color config +
+        src/style.css) so these server-rendered marketing pages look identical to the SPA's own
+        landing experience rather than a visually inconsistent parallel site. Absolute "/" paths
+        throughout this template (unlike index.html's relative ones) since these pages are served
+        from real sub-paths like /pricing, not from the root — a relative "src/style.css" would
+        resolve to /pricing/src/style.css and 404.
+    -->
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#c9184a",
+                        "background": "#050505",
+                        "surface": "#121212",
+                        "on-surface": "#ffffff",
+                        "on-surface-variant": "#a1a1aa",
+                        "primary": "#ff6b8a",
+                    }
+                }
+            }
+        }
+    </script>
+    <link rel="stylesheet" href="/src/style.css">
+
+    <!-- Google tag (gtag.js) — same property as the SPA (index.html), so these pages roll into
+         the same analytics view. -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Q3CFFX2P35"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+      gtag('config', 'G-Q3CFFX2P35');
+    </script>
+    {% block extra_head %}{% endblock %}
+</head>
+
+<body class="font-sans min-h-screen flex flex-col selection:bg-primary-container selection:text-white">
+    <div class="mesh-bg"></div>
+    <div class="gradient-sphere" style="top: 10%; left: 10%; width: 500px; height: 500px; background: #c9184a;"></div>
+
+    {% include "partials/nav.html" %}
+
+    <main class="flex-grow pt-32 pb-24 px-6">
+        <div class="max-w-5xl mx-auto w-full">
+            {% block content %}{% endblock %}
+        </div>
+    </main>
+
+    {% include "partials/footer.html" %}
+</body>
+
+</html>

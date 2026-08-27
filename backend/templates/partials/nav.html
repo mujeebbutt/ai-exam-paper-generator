@@ -1,0 +1,18 @@
+<!-- Static nav for the new server-rendered marketing pages (routers/pages.py). Deliberately NOT
+     the SPA's #landing-nav (which depends on generate.js/landing.js — scrollToSection, the hero
+     demo loop, etc. — none of which exist on these standalone pages and would console-error if
+     loaded here). Same visual treatment, plain real <a href> links only: Try UstadExam/Login both
+     go to "/" — there's no URL-based way into the SPA's register/login panels without touching
+     its own routing, which is explicitly out of scope here. -->
+<header class="fixed top-6 left-1/2 -translate-x-1/2 z-[200] bg-surface/90 backdrop-blur-3xl rounded-full border border-white/10 pl-4 pr-2 py-2 shadow-[0_40px_100px_rgba(0,0,0,0.8)] max-w-[95vw] overflow-x-auto">
+    <div class="flex items-center gap-6 md:gap-8 whitespace-nowrap">
+        <a href="/"><img src="/logo-icon.png" alt="UstadExam" class="h-8 w-8 object-contain shrink-0"></a>
+        <div class="hidden lg:flex items-center gap-5 xl:gap-7">
+            <a href="/features" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">Features</a>
+            <a href="/pricing" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">Pricing</a>
+            <a href="/about" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors">About</a>
+        </div>
+        <a href="/" class="px-6 py-3 rounded-full btn-brand-gradient text-white font-black uppercase tracking-widest text-[11px] shadow-lg shadow-primary/20 hover:brightness-110 active:scale-95 transition-all whitespace-nowrap">Try UstadExam</a>
+        <a href="/" class="text-[11px] font-black uppercase tracking-[0.15em] text-white/50 hover:text-white transition-colors whitespace-nowrap">Login</a>
+    </div>
+</header>

@@ -1,0 +1,89 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="space-y-16">
+    <div class="text-center space-y-4">
+        <span class="px-6 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.4em] text-white/40">Features</span>
+        <h1 class="text-4xl md:text-5xl font-black text-white tracking-tight">Everything You Need to Generate, Take, and Grade Exams</h1>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div class="premium-glass p-8 rounded-[2rem] border border-white/5 space-y-3">
+            <span class="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined text-2xl">auto_awesome</span>
+            </span>
+            <h2 class="text-lg font-black text-white">AI Exam Generation</h2>
+            <p class="text-white/50 text-sm leading-relaxed">
+                Upload your own syllabus or study material — or just describe a topic — and UstadExam generates a
+                full exam paper from it, with control over difficulty so the same source material can produce an
+                easier practice set or a harder mock exam depending on what you need.
+            </p>
+        </div>
+
+        <div class="premium-glass p-8 rounded-[2rem] border border-white/5 space-y-3">
+            <span class="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined text-2xl">fact_check</span>
+            </span>
+            <h2 class="text-lg font-black text-white">Automatic AI Grading</h2>
+            <p class="text-white/50 text-sm leading-relaxed">
+                Every subjective answer is graded automatically with a "why this score" breakdown, not just a
+                number — content correctness and grammar are scored and deducted separately, and each answer is
+                compared against an ideal model answer so you can see exactly what was missing.
+            </p>
+        </div>
+
+        <div class="premium-glass p-8 rounded-[2rem] border border-white/5 space-y-3">
+            <span class="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined text-2xl">history</span>
+            </span>
+            <h2 class="text-lg font-black text-white">Exam History Dashboard</h2>
+            <p class="text-white/50 text-sm leading-relaxed">
+                Every exam you generate and every attempt you grade is saved to your account, with scores tracked
+                over time — so progress (or a slipping trend) is visible at a glance instead of scattered across
+                one-off paper printouts.
+            </p>
+        </div>
+
+        <div class="premium-glass p-8 rounded-[2rem] border border-white/5 space-y-3">
+            <span class="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined text-2xl">target</span>
+            </span>
+            <h2 class="text-lg font-black text-white">Weak-Topic Detection</h2>
+            <p class="text-white/50 text-sm leading-relaxed">
+                UstadExam flags any topic averaging below roughly 60% across your graded attempts, so instead of
+                re-reading an entire syllabus before the next exam, you know precisely which topics actually need
+                review.
+            </p>
+        </div>
+
+        <div class="premium-glass p-8 rounded-[2rem] border border-white/5 space-y-3">
+            <span class="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined text-2xl">timer</span>
+            </span>
+            <h2 class="text-lg font-black text-white">Timed Practice Mode</h2>
+            <p class="text-white/50 text-sm leading-relaxed">
+                Exams run on a real clock with auto-submit when time runs out, so practice actually simulates exam
+                conditions instead of open-ended, unlimited-time question answering.
+            </p>
+        </div>
+
+        <div class="premium-glass p-8 rounded-[2rem] border border-white/5 space-y-3">
+            <span class="w-12 h-12 rounded-2xl bg-primary/15 flex items-center justify-center text-primary">
+                <span class="material-symbols-outlined text-2xl">verified_user</span>
+            </span>
+            <h2 class="text-lg font-black text-white">Integrity Logging for Teachers</h2>
+            <p class="text-white/50 text-sm leading-relaxed">
+                For teachers who need a bit more confidence in remote attempts, UstadExam quietly logs tab-switch
+                activity and flags unusually fast submissions on each attempt — a trust signal alongside the
+                grade, not a replacement for it.
+            </p>
+        </div>
+    </div>
+
+    <div class="text-center">
+        <a href="/" class="inline-flex items-center gap-2 px-10 py-5 rounded-2xl btn-brand-gradient text-white font-black uppercase tracking-widest text-sm shadow-lg shadow-primary/20 hover:brightness-110 transition-all">
+            Try UstadExam Free
+            <span class="material-symbols-outlined text-lg">arrow_forward</span>
+        </a>
+    </div>
+</div>
+{% endblock %}

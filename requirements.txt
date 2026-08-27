@@ -31,3 +31,4 @@ bcrypt
 PyJWT
 google-auth
 requests
+jinja2
