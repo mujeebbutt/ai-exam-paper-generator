@@ -17,9 +17,6 @@
         rel="stylesheet" />
     <!-- Caveat — used sparingly, just for the founder card's signature-style flourish -->
     <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&amp;display=swap" rel="stylesheet" />
-    <!-- Google Identity Services — powers the Login/Register "Continue with Google" buttons.
-         Exposes window.google.accounts.id, used in src/core/auth.js's loginWithGoogle(). -->
-    <script src="https://accounts.google.com/gsi/client" async defer></script>
     <link rel="icon" type="image/png" href="favicon.png">
     <!-- MathJax for LaTeX Support -->
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -1398,7 +1395,7 @@
                             <h2 class="text-2xl font-black text-white tracking-tight mt-1">Login to your account</h2>
                         </div>
 
-                        <button type="button" onclick="window.loginWithGoogle(event, 'login')" id="login-google-btn"
+                        <button type="button" onclick="window.loginWithGoogle('login')" id="login-google-btn"
                             class="w-full py-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-white/70 font-bold text-xs tracking-wide flex items-center justify-center gap-3 hover:bg-white/5 hover:text-white hover:border-white/20 active:scale-[0.99] transition-all">
                             <span class="material-symbols-outlined text-base">g_mobiledata</span> Continue with Google
                         </button>
@@ -1494,7 +1491,7 @@
                              terms consent are read from this same form's fields at click time (see
                              auth.js's loginWithGoogle()'s 'register' mode) exactly like the regular
                              Create Account submit does. -->
-                        <button type="button" onclick="window.loginWithGoogle(event, 'register')" id="register-google-btn"
+                        <button type="button" onclick="window.loginWithGoogle('register')" id="register-google-btn"
                             class="w-full py-3.5 rounded-2xl bg-white/[0.03] border border-white/10 text-white/70 font-bold text-xs tracking-wide flex items-center justify-center gap-3 hover:bg-white/5 hover:text-white hover:border-white/20 active:scale-[0.99] transition-all">
                             <span class="material-symbols-outlined text-base">g_mobiledata</span> Continue with Google
                         </button>

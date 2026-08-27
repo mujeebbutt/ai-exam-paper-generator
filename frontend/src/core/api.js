@@ -211,6 +211,23 @@ async function loginApi(email, password) {
     return response.json();
 }
 
+// First half of the classic OAuth redirect flow (see auth.js's loginWithGoogle()): trades the
+// authorization code Google just redirected back with for an id_token, which googleAuthApi()
+// below then verifies exactly like it always has. Needs a separate backend call because the
+// code-for-token exchange requires the Client Secret, which must never reach the frontend.
+async function googleExchangeApi(code, redirectUri) {
+    const response = await fetch(`${API_BASE}/auth/google/exchange`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ code, redirect_uri: redirectUri })
+    });
+    if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.detail || "Google sign-in failed");
+    }
+    return response.json();
+}
+
 async function googleAuthApi(payload) {
     const response = await fetch(`${API_BASE}/auth/google`, {
         method: 'POST',

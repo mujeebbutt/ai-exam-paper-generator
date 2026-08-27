@@ -1,6 +1,7 @@
 import bcrypt
 import jwt
 import os
+import requests
 from datetime import datetime, timedelta
 from typing import Optional
 from google.oauth2 import id_token as google_id_token
@@ -19,16 +20,22 @@ JWT_EXPIRES_HOURS = 24 * 7  # 7 days
 # fresh checkout has no Google Sign-In configured, and routers/auth.py's google_auth() reports
 # that explicitly (501) rather than letting verify_google_id_token() fail silently.
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+# Only needed server-side, for exchange_google_auth_code() below — must never reach the
+# frontend. Set alongside GOOGLE_CLIENT_ID; that Client ID's page in Google Cloud Console has a
+# "Client secrets" section to generate one (values aren't re-viewable once created — regenerate
+# rather than trying to recover a lost one).
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
 # Reused across calls on purpose — it internally caches Google's public signing keys instead of
 # refetching them on every sign-in.
 _google_auth_request = google_requests.Request()
 
 
 class AuthService:
-    # Exposed as a class attribute (rather than making callers import the module-level constant
-    # directly) purely so routers/auth.py's "is Google Sign-In configured at all?" check reads
-    # the same way as every other AuthService.* call it makes.
+    # Exposed as class attributes (rather than making callers import the module-level constants
+    # directly) purely so routers/auth.py's "is Google Sign-In configured at all?" checks read
+    # the same way as every other AuthService.* call they make.
     GOOGLE_CLIENT_ID = GOOGLE_CLIENT_ID
+    GOOGLE_CLIENT_SECRET = GOOGLE_CLIENT_SECRET
 
     @staticmethod
     def hash_password(password: str) -> str:
@@ -78,4 +85,32 @@ class AuthService:
             # (not returned to the client) purely so a real rejection reason shows up in Railway's
             # deploy logs instead of every failure looking identical from the outside.
             print(f"Google ID token verification failed: {e}")
+            return None
+
+    @staticmethod
+    def exchange_google_auth_code(code: str, redirect_uri: str) -> Optional[str]:
+        """First half of the classic OAuth 2.0 Authorization Code flow (see auth.js's
+        loginWithGoogle() for why we use this instead of Google Identity Services' One
+        Tap/FedCM prompt — the latter gets silently blocked by Brave Shields and similar).
+        Trades the authorization code for an id_token by POSTing to Google's token endpoint;
+        redirect_uri must be byte-identical to the one used to obtain `code` in the first place,
+        or Google rejects the exchange. Returns the raw id_token JWT — still independently
+        verified via verify_google_id_token() above, exactly like the old flow's credential was
+        — or None if GOOGLE_CLIENT_SECRET isn't configured or the exchange fails for any reason."""
+        if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET:
+            return None
+        try:
+            resp = requests.post("https://oauth2.googleapis.com/token", data={
+                "code": code,
+                "client_id": GOOGLE_CLIENT_ID,
+                "client_secret": GOOGLE_CLIENT_SECRET,
+                "redirect_uri": redirect_uri,
+                "grant_type": "authorization_code",
+            }, timeout=10)
+            resp.raise_for_status()
+            return resp.json().get("id_token")
+        except Exception as e:
+            # Same rationale as verify_google_id_token()'s catch-all: never a 500, just a
+            # rejected sign-in, with the real reason logged server-side for debugging.
+            print(f"Google auth code exchange failed: {e}")
             return None

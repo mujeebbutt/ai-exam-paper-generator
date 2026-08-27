@@ -4,7 +4,7 @@ from db.database import get_db
 from db import models
 from models.schemas import (
     RegisterRequest, LoginRequest, TokenResponse, AuthUserOut,
-    GoogleAuthRequest, OwnedExamOut, ProfileUpdateRequest,
+    GoogleAuthRequest, GoogleAuthCodeRequest, OwnedExamOut, ProfileUpdateRequest,
 )
 from services.auth_service import AuthService
 from typing import Optional, List
@@ -99,12 +99,29 @@ def login(request: LoginRequest, db: Session = Depends(get_db)):
     return TokenResponse(access_token=token, user=user)
 
 
+@router.post("/auth/google/exchange")
+def google_auth_exchange(request: GoogleAuthCodeRequest):
+    """
+    First half of the classic OAuth 2.0 redirect flow (see GoogleAuthCodeRequest's docstring):
+    trades the authorization code for an id_token, which the frontend then POSTs to /auth/google
+    below — same as it always has. Split into its own endpoint purely because this exchange
+    needs our Client Secret, which must never reach the frontend.
+    """
+    if not AuthService.GOOGLE_CLIENT_ID or not AuthService.GOOGLE_CLIENT_SECRET:
+        raise HTTPException(status_code=501, detail="Google Sign-In is not configured yet.")
+    id_token = AuthService.exchange_google_auth_code(request.code, request.redirect_uri)
+    if not id_token:
+        raise HTTPException(status_code=401, detail="Failed to complete Google sign-in. Please try again.")
+    return {"id_token": id_token}
+
+
 @router.post("/auth/google", response_model=TokenResponse)
 def google_auth(request: GoogleAuthRequest, db: Session = Depends(get_db)):
     """
-    Verifies the Google Identity Services credential from the frontend, then either signs an
-    existing user in or (Register page only — see GoogleAuthRequest's docstring) creates one.
-    Mirrors register()/login() above: same validation rules, same TokenResponse shape.
+    Verifies the Google credential (obtained via google_auth_exchange() above), then either
+    signs an existing user in or (Register page only — see GoogleAuthRequest's docstring)
+    creates one. Mirrors register()/login() above: same validation rules, same TokenResponse
+    shape.
     """
     if not AuthService.GOOGLE_CLIENT_ID:
         raise HTTPException(status_code=501, detail="Google Sign-In is not configured yet.")

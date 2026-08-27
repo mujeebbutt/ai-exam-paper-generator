@@ -23,3 +23,4 @@ fpdf
 bcrypt
 PyJWT
 google-auth
+requests

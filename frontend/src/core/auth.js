@@ -1,29 +1,34 @@
 // Authentication Controller (Phase 5) — real email/password auth against the backend
 // (bcrypt hashing + JWT sessions, see backend/services/auth_service.py). "Continue with
-// Google" is wired up for real too, via Google Identity Services (see loginWithGoogle() below)
-// and routers/auth.py's google_auth() — it 501s only if GOOGLE_CLIENT_ID isn't configured.
+// Google" is wired up for real too, via the classic OAuth 2.0 Authorization Code redirect flow
+// (see loginWithGoogle() below) — NOT Google Identity Services' One Tap/FedCM prompt, which
+// browsers with strict tracking protection (Brave Shields and similar) block by default, since
+// One Tap has historically been usable as a cross-site tracking signal. A plain redirect to
+// Google's own consent page is just an ordinary cross-site navigation, so nothing blocks it.
+// Backend half: routers/auth.py's google_auth_exchange() (code → id_token) and google_auth()
+// (id_token → session), both 501 until GOOGLE_CLIENT_ID/GOOGLE_CLIENT_SECRET are configured.
 // Mirrors attempt.js/generate.js's conventions: DOM-driven rendering, window.-exposed handlers.
 
-// OAuth 2.0 Web Client ID from https://console.cloud.google.com/apis/credentials (create an
-// "OAuth client ID" of type "Web application", with this site's origin under "Authorized
-// JavaScript origins"). Client IDs aren't secret — they're meant to ship in frontend code, same
-// as a Firebase config object would be — but this placeholder must be replaced with a real one
-// before the Google buttons will work; the backend independently checks the matching
-// GOOGLE_CLIENT_ID env var and 501s until that's set too (see auth_service.py).
+// OAuth 2.0 Web Client ID from https://console.cloud.google.com/apis/credentials (an "OAuth
+// client ID" of type "Web application", with this site's origin under "Authorized JavaScript
+// origins" and this exact origin + "/" under "Authorized redirect URIs" — see
+// GOOGLE_OAUTH_REDIRECT_URI below). Client IDs aren't secret — they're meant to ship in
+// frontend code — but this placeholder must be replaced with a real one before the Google
+// buttons will work; the backend independently checks the matching GOOGLE_CLIENT_ID env var
+// (and GOOGLE_CLIENT_SECRET, needed only server-side for the code exchange) and 501s until
+// both are set too (see auth_service.py).
 const GOOGLE_CLIENT_ID = '1028735589847-0fss2gj2vjktco4j5rnjv1kroaq0o1ir.apps.googleusercontent.com';
+// Must exactly match an "Authorized redirect URI" registered on the Client ID above, and is
+// sent again on the token-exchange call below (Google checks both match). Root-of-origin only
+// works against the production domain today — local dev (a different origin/port) would need
+// its own redirect URI added in Google Cloud Console to test this flow there.
+const GOOGLE_OAUTH_REDIRECT_URI = `${window.location.origin}/`;
 
 document.addEventListener('DOMContentLoaded', () => {
 
     const TOKEN_KEY = 'ustadexam_token';
     const USER_KEY = 'ustadexam_user';
     let registerRole = 'student';
-    // Google Identity Services state — initialize() must only ever run once (calling it again
-    // on every click triggers its own "initialized multiple times" console warning), so the
-    // per-click bits (which button, which extra register fields) are stashed here for the one
-    // shared callback to read instead.
-    let googleSignInReady = false;
-    let googleClickContext = null;
-    let googleSignInInFlight = false;
 
     function getToken() { return localStorage.getItem(TOKEN_KEY); }
     function getCachedUser() {
@@ -312,26 +317,21 @@ document.addEventListener('DOMContentLoaded', () => {
         note.scrollIntoView({ behavior: 'smooth', block: 'center' });
     };
 
-    // Google Identity Services flow. `mode` distinguishes the two buttons that call this:
-    // 'login' (Login page) only signs an existing account in; 'register' (Register page) also
-    // collects role/grade/subject/terms consent from that page's own form — exactly what
-    // window.register() above sends — so a brand-new Google sign-in gets the same required
-    // fields a password registration does. See routers/auth.py::google_auth() for the backend
-    // half of this split.
-    window.loginWithGoogle = (evt, mode) => {
-        const btn = evt?.currentTarget || null;
-
+    // Classic OAuth 2.0 Authorization Code redirect flow. `mode` distinguishes the two buttons
+    // that call this: 'login' (Login page) only signs an existing account in; 'register'
+    // (Register page) also collects role/grade/subject/terms consent from that page's own form
+    // — exactly what window.register() above sends — so a brand-new Google sign-in gets the
+    // same required fields a password registration does. This function only ever sends the
+    // browser to Google; the return leg is handleGoogleOAuthRedirectReturn() further down,
+    // since a full-page redirect means this function's own execution ends here, not there.
+    window.loginWithGoogle = (mode) => {
         if (!GOOGLE_CLIENT_ID || GOOGLE_CLIENT_ID.startsWith('YOUR_')) {
             showAuthToast('Google Sign-In needs a Client ID configured — see auth.js.');
             return;
         }
-        if (!window.google?.accounts?.id) {
-            showAuthToast('Google Sign-In failed to load — check your connection and try again.');
-            return;
-        }
 
         // Register mode: validate/collect this form's own fields up front, same checks
-        // window.register() applies, before ever opening the Google prompt.
+        // window.register() applies, before ever leaving the page.
         let extra = {};
         if (mode === 'register') {
             const consentEl = document.getElementById('register-terms-consent');
@@ -352,50 +352,67 @@ document.addEventListener('DOMContentLoaded', () => {
             };
         }
 
-        googleClickContext = { btn, original: btn ? btn.innerHTML : null, extra };
+        // A full-page redirect wipes all JS state, so `mode`'s extras have to survive the round
+        // trip via sessionStorage instead of a closure. `state` is round-tripped by Google
+        // unchanged and re-checked on return, purely to reject a forged/replayed callback.
+        const state = crypto.randomUUID();
+        sessionStorage.setItem('google_oauth_state', state);
+        sessionStorage.setItem('google_oauth_pending', JSON.stringify({ extra }));
 
-        if (!googleSignInReady) {
-            window.google.accounts.id.initialize({
-                client_id: GOOGLE_CLIENT_ID,
-                // FedCM opt-in — Google's own recommended migration ahead of FedCM becoming
-                // mandatory for the One Tap prompt.
-                use_fedcm_for_prompt: true,
-                callback: async (credentialResponse) => {
-                    googleSignInInFlight = false; // got a real result — the fallback timeout below is moot
-                    const ctx = googleClickContext || {};
-                    const setBusy = (label) => { if (ctx.btn) ctx.btn.innerHTML = `<span class="material-symbols-outlined text-base animate-spin">progress_activity</span> ${label}`; };
-                    const restore = () => { if (ctx.btn && ctx.original !== null) ctx.btn.innerHTML = ctx.original; };
-                    try {
-                        setBusy('Signing in…');
-                        const data = await googleAuthApi({ id_token: credentialResponse.credential, ...(ctx.extra || {}) });
-                        setSession(data.access_token, data.user);
-                        updateNavForAuthState();
-                        window.switchPage('generate');
-                    } catch (err) {
-                        console.error('Google sign-in error:', err);
-                        showAuthToast(err.message || 'Google sign-in failed.');
-                    } finally {
-                        restore();
-                    }
-                },
-            });
-            googleSignInReady = true;
+        const params = new URLSearchParams({
+            client_id: GOOGLE_CLIENT_ID,
+            redirect_uri: GOOGLE_OAUTH_REDIRECT_URI,
+            response_type: 'code',
+            scope: 'openid email profile',
+            prompt: 'select_account',
+            state,
+        });
+        window.location.href = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`;
+    };
+
+    // The return leg of the flow above: Google redirects back to GOOGLE_OAUTH_REDIRECT_URI
+    // (this same page) with ?code=...&state=... on success, or ?error=... if the user cancelled.
+    // Runs unconditionally on every load and no-ops instantly for the overwhelmingly common case
+    // (no code/error in the URL at all).
+    async function handleGoogleOAuthRedirectReturn() {
+        const params = new URLSearchParams(window.location.search);
+        const code = params.get('code');
+        const returnedState = params.get('state');
+        const oauthError = params.get('error');
+        if (!code && !oauthError) return;
+
+        // Scrub ?code=/?error= from the address bar either way — leaving it would let a page
+        // refresh replay an already-used (and by then rejected) code.
+        history.replaceState(null, '', window.location.origin + window.location.pathname);
+
+        const expectedState = sessionStorage.getItem('google_oauth_state');
+        const pendingRaw = sessionStorage.getItem('google_oauth_pending');
+        sessionStorage.removeItem('google_oauth_state');
+        sessionStorage.removeItem('google_oauth_pending');
+
+        if (oauthError) {
+            showAuthToast(oauthError === 'access_denied' ? 'Google sign-in was cancelled.' : 'Google sign-in failed.');
+            return;
+        }
+        if (!expectedState || returnedState !== expectedState) {
+            showAuthToast('Google sign-in failed — please try again.');
+            return;
         }
 
-        // Google's One Tap / account-chooser prompt. Deliberately called with no moment-status
-        // callback: notification.isNotDisplayed()/isSkippedMoment() are exactly the "UI status
-        // methods" Google's FedCM migration guide is deprecating, and they log their own console
-        // warning just from being called, independent of use_fedcm_for_prompt above. A plain
-        // timeout gets the same "nothing happened, let them know" UX without touching those.
-        googleSignInInFlight = true;
-        window.google.accounts.id.prompt();
-        setTimeout(() => {
-            if (googleSignInInFlight) {
-                googleSignInInFlight = false;
-                showAuthToast('Google sign-in was blocked or dismissed — please try again.');
-            }
-        }, 4000);
-    };
+        let extra = {};
+        try { extra = JSON.parse(pendingRaw || '{}').extra || {}; } catch (e) { /* malformed/missing — proceed with no extras */ }
+
+        try {
+            const { id_token } = await googleExchangeApi(code, GOOGLE_OAUTH_REDIRECT_URI);
+            const data = await googleAuthApi({ id_token, ...extra });
+            setSession(data.access_token, data.user);
+            updateNavForAuthState();
+            window.switchPage('generate');
+        } catch (err) {
+            console.error('Google sign-in error:', err);
+            showAuthToast(err.message || 'Google sign-in failed.');
+        }
+    }
 
     // Same visual pattern as attempt.js's anti-cheat toast (fixed top-center glass pill) —
     // reused here rather than duplicated, just under its own id so the two never collide.
@@ -425,6 +442,10 @@ document.addEventListener('DOMContentLoaded', () => {
     window.forgotPassword = () => {
         showAuthToast('Password reset is coming soon — ask your admin for now');
     };
+
+    // Handle a just-completed Google redirect (if any) before the ordinary cached-session check
+    // below, so a fresh Google sign-in's session is in place before it runs.
+    handleGoogleOAuthRedirectReturn();
 
     // On load: if a session is cached, verify it's still valid against the backend (catches an
     // expired token or a rotated JWT secret) instead of trusting localStorage blindly.

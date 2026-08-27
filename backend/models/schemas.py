@@ -286,8 +286,18 @@ class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
+class GoogleAuthCodeRequest(BaseModel):
+    """First half of the classic OAuth 2.0 redirect flow (see frontend/src/core/auth.js's
+    loginWithGoogle()): `code` is the authorization code Google just redirected the browser back
+    with, traded server-side (routers/auth.py's google_auth_exchange()) for an id_token — that
+    exchange needs our Client Secret, which must never reach the frontend. redirect_uri must be
+    byte-identical to the one the frontend actually redirected Google to/from, or Google rejects
+    the exchange."""
+    code: str
+    redirect_uri: str
+
 class GoogleAuthRequest(BaseModel):
-    """id_token is a Google Identity Services credential, verified server-side in
+    """id_token is a Google credential — from the code exchange above — verified server-side in
     routers/auth.py's google_auth(). role/grade/subject/terms_accepted are only populated by the
     Register page's Google button — a brand-new Google sign-in needs exactly the same info a
     password registration collects (see RegisterRequest above); the Login page's Google button
