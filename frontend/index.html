@@ -531,7 +531,17 @@
                                     <span class="block text-[9px] font-black uppercase tracking-widest text-white/40 mt-1">Students &amp; Teachers</span>
                                 </div>
                             </div>
-                            <h1 class="hero-headline text-6xl sm:text-7xl lg:text-[4rem] xl:text-7xl font-black tracking-tight leading-[1.05] text-white">
+                            <!-- clamp() instead of a breakpoint-jump scale: the old
+                                 text-6xl sm:text-7xl lg:text-[4rem] xl:text-7xl actually got
+                                 BIGGER again at the xl breakpoint (1280px+) right after shrinking
+                                 at lg (1024px+) — backwards, since a 13"-15" laptop at
+                                 1280-1440px CSS width has less real screen space than a wide
+                                 desktop monitor at the same width, so the largest size landing
+                                 exactly on typical laptop widths is what read as "zoomed in"
+                                 there. clamp() scales continuously instead, so laptop widths sit
+                                 clearly below the max (~72px, unchanged, reached only on genuinely
+                                 large monitors) rather than jumping straight to it. -->
+                            <h1 class="hero-headline text-[clamp(2.75rem,1.5rem+2.5vw,4.5rem)] font-black tracking-tight leading-[1.05] text-white">
                                 Create <span class="bg-clip-text text-transparent bg-gradient-to-r from-primary to-rose-300">Smarter</span> Exams.<br>
                                 Learn <span class="bg-clip-text text-transparent bg-gradient-to-r from-primary to-rose-300">Smarter</span>.
                             </h1>
