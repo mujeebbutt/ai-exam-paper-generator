@@ -1170,33 +1170,74 @@ document.addEventListener('DOMContentLoaded', () => {
         if (modal) modal.style.display = 'none';
     };
 
-    // --- Robot & Messages ---
+    // --- Robot & Messages: state-driven avatar ---
+    // avatarState = 'error' | 'idle-tip'. 'error' always wins over tip rotation while one is
+    // active — showAIError() (called from ~25 sites across this file: upload validation, export
+    // failures, generation failures, delete errors, etc. — every one of them already IS one of
+    // the "active error" cases this is meant to surface) sets it and it PERSISTS until something
+    // resolves it, rather than the old fixed 5s auto-clear that could hide a validation error
+    // before the user even read it. showAIMessage() (a transient success/info toast — "Paper
+    // saved", "Files removed", etc.) is the resolution point: a success message right after an
+    // error means whatever was wrong got fixed, so it clears 'error' back to 'idle-tip'.
+    let avatarState = 'idle-tip';
+    let avatarErrorMessage = null;
+    let avatarTipIndex = 0;
+    let avatarTransientTimer = null;
+    let avatarTipTimer = null;
+
+    // Idle-time rotation content. Index 0 matches #ai-message's hardcoded initial text in
+    // index.html so there's no flash/mismatch on first render.
+    const AVATAR_TIPS = [
+        "I am the AI assistant!<br>Attach files and click <strong class='text-primary'>GENERATE</strong> in the navbar to start.",
+        "Tip: I can read PDFs, DOCX files, and photos of your notes — no need to retype anything.",
+        "Tip: A specific topic (e.g. \"Newton's Laws of Motion\") gets sharper questions than a vague one.",
+        "Tip: Set difficulty and section counts in Exam Settings before you generate — I'll match the questions to them.",
+        "Tip: Click <strong class='text-primary'>Generate</strong> in the nav bar whenever you're ready — that's what actually creates the exam.",
+        "Tip: After grading, check your Library — weak-topic detection flags anything averaging below ~60%.",
+    ];
+
+    function renderAvatarMessage() {
+        if (!aiMessage) return;
+        aiMessage.innerHTML = avatarState === 'error' ? avatarErrorMessage : AVATAR_TIPS[avatarTipIndex];
+    }
+
+    function startAvatarTipRotation() {
+        if (avatarTipTimer) clearInterval(avatarTipTimer);
+        avatarTipTimer = setInterval(() => {
+            if (avatarState === 'error') return; // leave the error up; don't advance underneath it
+            if (state.activePage !== 'generate') return; // avatar isn't even visible elsewhere
+            avatarTipIndex = (avatarTipIndex + 1) % AVATAR_TIPS.length;
+            renderAvatarMessage();
+        }, 8000);
+    }
+    startAvatarTipRotation();
+
     // Exposed on window: index.html's #robot-avatar has an inline onclick="...showAIMessage(...)"
     // attribute, which executes in the global scope and can't see this closure-local function
     // otherwise (pre-existing bug — surfaced as "showAIMessage is not defined" when clicked).
+    // Clicking the avatar itself also doubles as a manual "dismiss" for a lingering error, since
+    // showAIMessage() always resolves 'error' back to 'idle-tip'.
     window.showAIMessage = showAIMessage;
     function showAIMessage(msg) {
         if (!aiMessage) return;
+        avatarState = 'idle-tip';
+        avatarErrorMessage = null;
+        if (robotAvatar) robotAvatar.classList.remove('animate-wiggle');
         aiMessage.innerHTML = msg;
-        setTimeout(() => {
-            if (aiMessage) {
-                aiMessage.innerHTML = "I am the AI assistant!<br>Attach files and click <strong class='text-primary'>GENERATE</strong> in the navbar to start.";
-            }
-        }, 5000);
+        clearTimeout(avatarTransientTimer);
+        avatarTransientTimer = setTimeout(renderAvatarMessage, 5000);
     }
 
     function showAIError(msg) {
         if (!aiMessage || !robotAvatar) return;
-        aiMessage.innerHTML = msg;
+        avatarState = 'error';
+        avatarErrorMessage = msg;
+        clearTimeout(avatarTransientTimer);
+        renderAvatarMessage();
+        // One-shot attention grab (500ms, matching @keyframes wiggle's own duration) — not tied
+        // to how long the error message itself stays displayed, which is now indefinite.
         robotAvatar.classList.add('animate-wiggle');
-        setTimeout(() => {
-            if (aiMessage) {
-                aiMessage.innerHTML = "I am the AI assistant!<br>Attach files and click <strong class='text-primary'>GENERATE</strong> in the navbar to start.";
-            }
-            if (robotAvatar) {
-                robotAvatar.classList.remove('animate-wiggle');
-            }
-        }, 5000);
+        setTimeout(() => robotAvatar.classList.remove('animate-wiggle'), 500);
     }
 
     // --- AI Thinking ---
