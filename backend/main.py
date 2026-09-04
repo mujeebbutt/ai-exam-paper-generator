@@ -41,14 +41,56 @@ from fastapi.middleware.cors import CORSMiddleware
 from db.database import engine, Base
 from routers import upload, generate, export, bank, attempts, auth, pages
 from fastapi.staticfiles import StaticFiles
+from contextlib import asynccontextmanager
+import asyncio
 import logging
 
 logging.basicConfig(level=logging.INFO, format='%(levelname)s: %(message)s')
+logger = logging.getLogger(__name__)
 
 # Create DB tables
 Base.metadata.create_all(bind=engine)
 
-app = FastAPI(title="UstadExam", version="1.0.0")
+
+async def _warm_up_vector_store():
+    """Pays the vector store's one-time cold-start cost (10-30s to load the SentenceTransformer
+    embedding model — see services/vector_store.py) during boot instead of on whichever request
+    happens to land first after a deploy/restart. get_health() is the same safe, already-public
+    entry point /api/status uses — this doesn't touch _ensure_initialized()'s internals or its
+    retry/cooldown behavior at all, just triggers it proactively.
+
+    Deliberately run in a worker thread (asyncio.to_thread), not called directly: get_health()
+    is a blocking synchronous call, and awaiting it directly on the event loop would freeze
+    request handling for the full 10-30s load — defeating the whole point of doing this at
+    startup instead of on a real request. Scheduled as a fire-and-forget task (see lifespan()
+    below) rather than awaited, so a slow or failing warm-up can never delay the app reporting
+    itself ready to Railway or block startup — get_health() already can't raise (that's the
+    resilience fix this builds on), but the try/except here is a second, independent guard so a
+    truly unexpected error inside this task specifically can never do anything worse than log.
+    """
+    logger.info("Vector store warm-up: starting...")
+    try:
+        health = await asyncio.to_thread(generate.vector_store.get_health)
+        if health["available"]:
+            logger.info("Vector store warm-up: succeeded.")
+        else:
+            logger.warning(f"Vector store warm-up: failed — {health['last_error']}")
+    except Exception as e:
+        logger.error(f"Vector store warm-up: unexpected error: {e}", exc_info=True)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Fire-and-forget: NOT awaited here on purpose. Scheduling the task and moving straight to
+    # `yield` lets uvicorn finish startup and start accepting connections immediately, while the
+    # warm-up keeps running concurrently in the background.
+    asyncio.create_task(_warm_up_vector_store())
+    yield
+    # No shutdown-side cleanup needed — Chroma's PersistentClient and the embedding model don't
+    # hold any resource that needs an explicit close.
+
+
+app = FastAPI(title="UstadExam", version="1.0.0", lifespan=lifespan)
 
 # Configure CORS for the frontend. In production (ustadexam.com, frontend+backend same origin
 # behind Railway's proxy) same-origin fetches aren't subject to CORS at all, so this mainly
@@ -85,7 +127,15 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # with every other route in this file.
 @app.get("/api/status")
 async def status():
-    return {"message": "UstadExam API is running in production (Railway)"}
+    # vector_store.get_health() actively (re)attempts init if it isn't already up, subject to
+    # its own retry cooldown — so polling this endpoint can't itself hammer a down dependency.
+    # A degraded vector store never affects this endpoint's own 200 OK: see
+    # services/vector_store.py — Chroma/embedding-model failures are isolated there on purpose,
+    # so the rest of the app (this status check included) stays up regardless.
+    return {
+        "message": "UstadExam API is running in production (Railway)",
+        "vector_store": generate.vector_store.get_health(),
+    }
 
 # ============================================================================
 # TEMPORARY — Sentry verification route. Delete this once you've confirmed the
