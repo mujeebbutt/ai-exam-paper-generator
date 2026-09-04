@@ -29,7 +29,12 @@ else:
     connect_args = {"check_same_thread": False}
     logging.info(f"Database: DATABASE_URL not set, falling back to local SQLite at {SQLALCHEMY_DATABASE_URL}")
 
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
+# pool_pre_ping=True: SQLAlchemy tests each pooled connection with a lightweight "is this still
+# alive" check before handing it to a request, and transparently reconnects if it's gone stale —
+# instead of that request throwing a 500 on a dead connection. Matters most for cloud Postgres,
+# which can silently drop idle connections (a real risk once there's actual traffic with idle
+# gaps between requests); adds negligible overhead per checkout either way, SQLite included.
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args, pool_pre_ping=True)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
