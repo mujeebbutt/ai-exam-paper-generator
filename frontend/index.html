@@ -3,6 +3,36 @@
 
 <head>
     <meta charset="utf-8" />
+
+    <!-- Sentry browser SDK — separate JavaScript/Browser project from the backend's Python one
+         (see backend/main.py's sentry_sdk.init(); that DSN is backend-only, this is a different
+         project/DSN). Loaded first, before every other script on this page (including the
+         Tailwind CDN script right below), specifically so it can catch and buffer errors thrown
+         by anything that loads after it — per Sentry's own loader-script docs. No bundler exists
+         in this project (plain HTML/CSS/JS throughout), so this is the CDN loader script, not an
+         npm install: window.sentryOnLoad must be defined before the loader <script> tag runs, since
+         the loader calls it once the SDK itself has finished loading. Once initialized, Sentry's
+         global window.onerror/unhandledrejection handlers capture errors from every other script
+         on this page (auth.js, generate.js, attempt.js, ...) automatically — no per-file changes
+         needed anywhere else. -->
+    <script>
+      window.sentryOnLoad = function () {
+        Sentry.init({
+          // Same local-dev hostname check already used elsewhere in this codebase (see
+          // src/core/api.js's isLocalDev) — the frontend has no server-side templating to read
+          // an ENVIRONMENT env var from the way backend/main.py does, so hostname is the
+          // closest equivalent signal available client-side.
+          environment: ['localhost', '127.0.0.1', ''].includes(window.location.hostname) ? 'development' : 'production',
+          // 1.0 = trace every transaction. Fine at this stage: real traffic is low enough that
+          // full visibility costs little against Sentry's quota. Revisit downward (e.g. 0.1-0.2)
+          // once real traffic grows — same tradeoff already noted for the backend's own
+          // traces_sample_rate in main.py.
+          tracesSampleRate: 1.0,
+        });
+      };
+    </script>
+    <script src="https://js.sentry-cdn.com/56a20aed0b9d3b8b39e645bded80e416.min.js" crossorigin="anonymous"></script>
+
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>UstadExam - AI Exam Generator &amp; Grading Tool for Teachers &amp; Students</title>
     <meta name="description" content="Generate exam papers from any syllabus and grade student answers automatically with AI. Built for teachers and students in Pakistan. Free to start.">

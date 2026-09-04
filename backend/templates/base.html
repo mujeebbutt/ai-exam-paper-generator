@@ -3,6 +3,21 @@
 
 <head>
     <meta charset="utf-8" />
+
+    <!-- Sentry browser SDK — same loader/config as frontend/index.html; see that file's comment
+         for the full rationale. Kept here in the shared base template (not duplicated per page)
+         since every server-rendered page (pricing, features, about, all 9 legal pages) extends
+         this template, so this one block covers all of them. -->
+    <script>
+      window.sentryOnLoad = function () {
+        Sentry.init({
+          environment: ['localhost', '127.0.0.1', ''].includes(window.location.hostname) ? 'development' : 'production',
+          tracesSampleRate: 1.0,
+        });
+      };
+    </script>
+    <script src="https://js.sentry-cdn.com/56a20aed0b9d3b8b39e645bded80e416.min.js" crossorigin="anonymous"></script>
+
     <meta content="width=device-width, initial-scale=1.0" name="viewport" />
     <title>{{ title }}</title>
     <meta name="description" content="{{ meta_description }}">
