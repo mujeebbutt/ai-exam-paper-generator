@@ -55,6 +55,95 @@
       gtag('js', new Date());
       gtag('config', 'G-Q3CFFX2P35');
     </script>
+
+    <!-- JSON-LD: Organization — identifies UstadExam as an entity for Google's Knowledge Graph
+         (logo/name in search results, sitelinks search box eligibility, etc.). -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "UstadExam",
+      "url": "https://ustadexam.com/",
+      "logo": "https://ustadexam.com/logo-full.png",
+      "description": "UstadExam generates, grades, and tracks progress on AI-powered exams from your own study material."
+    }
+    </script>
+
+    <!-- JSON-LD: FAQPage — verbatim copy of the real FAQ accordion further down this page
+         (#faq, 8 questions) so Google can show an FAQ rich result/dropdown directly in search.
+         Keep this in sync with that section if its questions/answers ever change. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "How does UstadExam generate exams?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "It reads the study material you upload and writes MCQ, short, and long questions from it using AI — you choose the mix, difficulty, and question count before generating."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What study material can I upload?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "PDFs — notes, textbook chapters, or past papers. UstadExam reads the content and generates questions matched to it."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can UstadExam grade long answers?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — short and long answers are graded by AI against a rubric, with a transparent breakdown of what matched and what's missing, not just a bare score."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is UstadExam suitable for teachers and students?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Both — registration asks whether you're a teacher or student and adapts accordingly. Teachers can generate class exams; students can generate practice exams for self-study."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How does exam integrity monitoring work?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Tab-switch and submission-speed signals are logged during an attempt and shown to the teacher for review — informational only, never an automatic penalty."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I start for free?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — every account starts on the Free plan (2 generations and 2 AI grading checks a day, medium strictness). Upgrade only if you need more."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I pay for a paid plan?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "At launch, upgrades are handled manually: pay via JazzCash or EasyPaisa and send your payment confirmation over WhatsApp. Your account is upgraded once confirmed."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I cancel anytime?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes — message us on WhatsApp and your plan won't renew for the next billing cycle. You keep Pro access until the period you already paid for ends."
+          }
+        }
+      ]
+    }
+    </script>
 </head>
 
 <body class="font-sans min-h-screen flex flex-col selection:bg-primary-container selection:text-white">

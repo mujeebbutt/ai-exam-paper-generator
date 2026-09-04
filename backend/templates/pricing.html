@@ -1,4 +1,42 @@
 {% extends "base.html" %}
+{% block extra_head %}
+<!-- JSON-LD: SoftwareApplication — offers reflect the three tiers actually rendered below;
+     keep these prices in sync if the plan cards ever change. -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "SoftwareApplication",
+  "name": "UstadExam",
+  "applicationCategory": "EducationalApplication",
+  "operatingSystem": "Web",
+  "url": "https://ustadexam.com/pricing",
+  "description": "AI-powered exam generation, taking, and grading for teachers and students.",
+  "offers": [
+    {
+      "@type": "Offer",
+      "name": "Free",
+      "price": "0",
+      "priceCurrency": "PKR",
+      "description": "Forever free"
+    },
+    {
+      "@type": "Offer",
+      "name": "Student Pro",
+      "price": "599",
+      "priceCurrency": "PKR",
+      "description": "Billed monthly"
+    },
+    {
+      "@type": "Offer",
+      "name": "Teacher Pro",
+      "price": "3900",
+      "priceCurrency": "PKR",
+      "description": "Billed monthly"
+    }
+  ]
+}
+</script>
+{% endblock %}
 {% block content %}
 <div class="space-y-20">
     <div class="text-center space-y-4">
